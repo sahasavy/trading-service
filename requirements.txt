@@ -1,0 +1,7 @@
+kiteconnect
+PyYAML
+SQLAlchemy
+websocket-client
+pandas
+pytz
+apscheduler
