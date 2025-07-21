@@ -1,0 +1,42 @@
+gst_percent: 0.18
+
+segments:
+  EQUITY_DELIVERY:
+    brokerage_percent: 0.0
+    brokerage_cap: 0.0
+    stt_percent_buy: 0.001
+    stt_percent_sell: 0.001
+    txn_percent_nse: 0.0000297
+    txn_percent_bse: 0.0000375
+    sebi_per_crore: 10
+    stamp_percent_buy: 0.00015
+
+  EQUITY_INTRADAY:
+    brokerage_percent: 0.0003
+    brokerage_cap: 20
+    stt_percent_buy: 0.0
+    stt_percent_sell: 0.00025
+    txn_percent_nse: 0.0000297
+    txn_percent_bse: 0.0000375
+    sebi_per_crore: 10
+    stamp_percent_buy: 0.00003
+
+  FNO_FUTURE:
+    brokerage_percent: 0.0003
+    brokerage_cap: 20
+    stt_percent_buy: 0.0
+    stt_percent_sell: 0.0002
+    txn_percent_nse: 0.0000173
+    txn_percent_bse: 0
+    sebi_per_crore: 10
+    stamp_percent_buy: 0.00002
+
+  FNO_OPTION:
+    brokerage_percent: 0.0
+    brokerage_cap: 20
+    stt_percent_buy: 0.0
+    stt_percent_sell: 0.0005
+    txn_percent_nse: 0.0003503
+    txn_percent_bse: 0.000325
+    sebi_per_crore: 10
+    stamp_percent_buy: 0.00003

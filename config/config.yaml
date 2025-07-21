@@ -28,3 +28,7 @@ indicators:
   - MACD
   - SUPER_TREND
   - VOLUME_SPIKE
+
+brokerage:
+  segment: EQUITY_INTRADAY
+  exchange: NSE
