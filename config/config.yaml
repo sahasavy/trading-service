@@ -12,3 +12,7 @@ websocket:
   default_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
   reconnect: true
   reconnect_max_tries: 5
+  market_open_hour: 9
+  market_open_minute: 00
+  market_close_hour: 15
+  market_close_minute: 30
