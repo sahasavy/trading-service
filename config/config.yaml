@@ -1,3 +1,14 @@
 kite:
   api_key: "YOUR_KEY"
   api_secret: "YOUR_SECRET"
+
+historical:
+  trading_symbol: "HDFCBANK"
+  from_date: "2025-01-01 09:15:00"
+  to_date: "2025-07-19 15:30:00"
+  interval: "1m"
+
+websocket:
+  default_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
+  reconnect: true
+  reconnect_max_tries: 5
