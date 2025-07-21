@@ -27,11 +27,18 @@ python3 -m scripts.run_login
 python3 -m scripts.run_historical
 ```
 
+### 📈 Indicator Features (For adding indicator feature values to historic data candles)
+
+```bash
+
+python3 -m scripts.run_indicator
+```
+
 ### 📈 Live Websocket (For Fetching live tick data)
 
 ```bash
 
-python3 -m scripts.run_websocket
+python3 -m scripts.run_websocket            # OR, for scheduler: python3 -m scripts.scheduler.run_websocket_scheduler
 ```
 
 ## ⚠️ Notes:
@@ -47,5 +54,5 @@ python3 -m scripts.run_websocket
 
 ```bash
 
-python3 -m scripts.run_cache_scheduler
+python3 -m scripts.scheduler.run_cache_scheduler
 ```

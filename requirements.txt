@@ -5,3 +5,4 @@ websocket-client
 pandas
 pytz
 apscheduler
+numpy

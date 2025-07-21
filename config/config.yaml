@@ -16,3 +16,15 @@ websocket:
   market_open_minute: 00
   market_close_hour: 15
   market_close_minute: 30
+
+indicators:
+  - SMA_CROSS
+  - EMA_CROSS
+  - RSI
+  - ADX
+  - BOLLINGER
+  - CCI
+  - DONCHIAN
+  - MACD
+  - SUPER_TREND
+  - VOLUME_SPIKE
