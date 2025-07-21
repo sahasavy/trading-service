@@ -1,0 +1,43 @@
+indicators:
+  SMA_CROSS:
+    fast: 20
+    slow: 50
+
+  EMA_CROSS:
+    fast: 12
+    slow: 26
+
+  RSI:
+    period: 14
+    overbought: 70
+    oversold: 30
+
+  ADX:
+    period: 14
+    threshold: 25
+    exit_threshold: 20
+
+  BOLLINGER:
+    period: 20
+    stddev: 2.0
+
+  CCI:
+    period: 20
+    entry: -100
+    exit: 100
+
+  DONCHIAN:
+    period: 20
+
+  MACD:
+    fast: 12
+    slow: 26
+    signal: 9
+
+  SUPER_TREND:
+    period: 10
+    multiplier: 3.0
+
+  VOLUME_SPIKE:
+    period: 20
+    spike_mult: 2.0
