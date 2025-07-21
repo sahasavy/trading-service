@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from datetime import time, datetime
 
 import pytz
@@ -51,7 +52,25 @@ def start_websocket(symbols):
         reconnect_max_tries=config['websocket']['reconnect_max_tries'],
     )
 
+    now = get_current_ist_time()
+    market_close = now.replace(
+        hour=config['websocket']['market_close_hour'],
+        minute=config['websocket']['market_close_minute'],
+        second=0,
+        microsecond=0
+    )
+    if now > market_close:
+        print("⏰ Market already closed, skipping websocket connection.")
+        for fh in file_handles.values():
+            fh.close()
+        return
+
     def on_ticks(ws, ticks):
+        now = get_current_ist_time().time()
+        if now >= time(config['websocket']['market_close_hour'], config['websocket']['market_close_minute']):
+            print("⏰ Market closed! Closing websocket and files.")
+            ws.close()
+            return
         for tick in ticks:
             tick_serialized = {
                 k: (v.isoformat() if isinstance(v, (datetime,)) else v)
@@ -80,12 +99,13 @@ def start_websocket(symbols):
     kws.on_close = on_close
     kws.on_error = on_error
 
-    while True:
-        now = get_current_ist_time().time()
-        if now >= time(15, 30):
-            print("⏰ Market closed, stopping websocket.")
-            break
-        kws.connect()
+    def schedule_close_ws():
+        wait_sec = (market_close - now).total_seconds()
+        threading.Timer(wait_sec, lambda: kws.close()).start()
+        print(f"🕒 Websocket will be auto-closed at {market_close.time()} IST (in {wait_sec / 60:.1f} min)")
+
+    schedule_close_ws()
+    kws.connect()
 
     for fh in file_handles.values():
         fh.close()
