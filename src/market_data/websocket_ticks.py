@@ -44,6 +44,7 @@ def start_websocket(symbols):
     file_handles = create_file_handles(symbols)
 
     kite = get_authenticated_kite()
+    is_closed = {"status": False}
 
     kws = KiteTicker(
         kite.api_key,
@@ -62,14 +63,18 @@ def start_websocket(symbols):
     if now > market_close:
         print("⏰ Market already closed, skipping websocket connection.")
         for fh in file_handles.values():
-            fh.close()
+            if not fh.closed:
+                fh.close()
         return
 
     def on_ticks(ws, ticks):
-        now = get_current_ist_time().time()
-        if now >= time(config['websocket']['market_close_hour'], config['websocket']['market_close_minute']):
+        if is_closed["status"]:
+            return
+        now_time = get_current_ist_time().time()
+        if now_time >= time(config['websocket']['market_close_hour'], config['websocket']['market_close_minute']):
             print("⏰ Market closed! Closing websocket and files.")
             ws.close()
+            is_closed["status"] = True
             return
         for tick in ticks:
             tick_serialized = {
@@ -78,8 +83,10 @@ def start_websocket(symbols):
             }
             symbol = token_symbol_map.get(tick['instrument_token'])
             if symbol:
-                json_line = json.dumps(tick_serialized)
-                file_handles[symbol].write(json_line + '\n')
+                fh = file_handles[symbol]
+                if not fh.closed:
+                    json_line = json.dumps(tick_serialized)
+                    fh.write(json_line + '\n')
 
     def on_connect(ws, response):
         ws.subscribe(tokens)
@@ -88,11 +95,19 @@ def start_websocket(symbols):
 
     def on_close(ws, code, reason):
         print(f"🔴 Websocket closed: {code} - {reason}")
-        for fh in file_handles.values():
-            fh.close()
+        if not is_closed["status"]:
+            is_closed["status"] = True
+            for fh in file_handles.values():
+                if not fh.closed:
+                    fh.close()
 
     def on_error(ws, error_code, error_message):
         print(f"❌ Error occurred [{error_code}]: {error_message}")
+        if not is_closed["status"]:
+            is_closed["status"] = True
+            for fh in file_handles.values():
+                if not fh.closed:
+                    fh.close()
 
     kws.on_ticks = on_ticks
     kws.on_connect = on_connect
@@ -106,6 +121,3 @@ def start_websocket(symbols):
 
     schedule_close_ws()
     kws.connect()
-
-    for fh in file_handles.values():
-        fh.close()
