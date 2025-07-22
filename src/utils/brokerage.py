@@ -73,4 +73,4 @@ if __name__ == "__main__":
         print(f"- {k.upper():<8}: ₹{v}")
     print(f"✅ Total Charges: ₹{result['total']}")
 
-# python src/utils/brokerage.py --segment EQUITY_INTRADAY --side SELL --price 1000 --qty 100 --exchange NSE
+# python3 src/utils/brokerage.py --segment EQUITY_INTRADAY --side SELL --price 1000 --qty 100 --exchange NSE
