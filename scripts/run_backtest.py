@@ -30,30 +30,35 @@ def main():
     config = yaml.safe_load(open(CONFIG_PATH))
 
     backtest_cfg = config['backtest']
-    trading_symbols = backtest_cfg['trading_symbols']
-    intervals = backtest_cfg['intervals']
-    from_date = backtest_cfg['from_date']
-    to_date = backtest_cfg['to_date']
-    train_split = backtest_cfg.get('train_split', 1.0)
-    initial_capital = backtest_cfg.get('initial_capital', 1000000)
-    stop_loss_pct = backtest_cfg.get('stop_loss_pct', 0.02)
-    trailing_stop_loss_pct = backtest_cfg.get('trailing_stop_loss_pct', 0.02)
-    target_profit_pct = backtest_cfg.get('target_profit_pct', 0.04)
-    hold_min_bars = backtest_cfg.get('hold_min_bars', 2)
-    hold_max_bars = backtest_cfg.get('hold_max_bars', 120)
-    contract_size = backtest_cfg.get('contract_size', 1)
-    fill_rate = backtest_cfg.get('fill_rate', 1.0)
-    slippage_pct = backtest_cfg.get('slippage_pct', 0.001)
-    intraday_only = backtest_cfg.get('intraday_only', True)
+    backtest_data_cfg = backtest_cfg.get('data')
+    backtest_strategy_cfg = backtest_cfg.get('strategy')
+    backtest_simulation_params_cfg = backtest_cfg.get('simulation_params')
+    debug_logs_flag = backtest_cfg.get('debug_logs', True)
+
+    trading_symbols = backtest_data_cfg['trading_symbols']
+    intervals = backtest_data_cfg['intervals']
+    from_date = backtest_data_cfg['from_date']
+    to_date = backtest_data_cfg['to_date']
+
+    strategy_name = backtest_strategy_cfg['name']
+    fast_list = backtest_strategy_cfg['ema_fast_list']
+    slow_list = backtest_strategy_cfg['ema_slow_list']
+
+    train_split = backtest_simulation_params_cfg.get('train_split', 1.0)
+    initial_capital = backtest_simulation_params_cfg.get('initial_capital', 1000000)
+    stop_loss_pct = backtest_simulation_params_cfg.get('stop_loss_pct', 0.02)
+    trailing_stop_loss_pct = backtest_simulation_params_cfg.get('trailing_stop_loss_pct', 0.02)
+    target_profit_pct = backtest_simulation_params_cfg.get('target_profit_pct', 0.04)
+    hold_min_bars = backtest_simulation_params_cfg.get('hold_min_bars', 2)
+    hold_max_bars = backtest_simulation_params_cfg.get('hold_max_bars', 120)
+    contract_size = backtest_simulation_params_cfg.get('contract_size', 1)
+    fill_rate = backtest_simulation_params_cfg.get('fill_rate', 1.0)
+    slippage_pct = backtest_simulation_params_cfg.get('slippage_pct', 0.001)
+    intraday_only = backtest_simulation_params_cfg.get('intraday_only', True)
 
     brokerage_cfg = config['brokerage']
     segment = brokerage_cfg.get('segment')
     exchange = brokerage_cfg.get('exchange')
-
-    strategy_cfg = config['strategy']
-    strategy_name = strategy_cfg['name']
-    fast_list = strategy_cfg['ema_fast_list']
-    slow_list = strategy_cfg['ema_slow_list']
 
     summary_metrics = []
     for trading_symbol in trading_symbols:
@@ -91,7 +96,7 @@ def main():
                         exchange,
                         train_split,
                         intraday_only,
-                        verbose=True,
+                        debug_logs_flag=debug_logs_flag,
                         save_results=True,
                         token=trading_symbol,
                         interval=interval_key,

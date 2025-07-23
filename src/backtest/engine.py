@@ -12,7 +12,7 @@ def run_backtest(
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
         slippage_pct, segment, exchange, train_split=1.0, intraday_only=True,
-        verbose=True, save_results=True, token="", interval=""
+        debug_logs_flag=True, save_results=True, token="", interval=""
 ):
     df = df.copy()
     compute_ema_signals(df, fast, slow)
@@ -29,11 +29,11 @@ def run_backtest(
         trades, equity_curve = simulate_strategy(
             split_df, initial_capital, stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
             contract_size, hold_min_bars, hold_max_bars, fill_rate,
-            slippage_pct, segment, exchange, intraday_only, verbose
+            slippage_pct, segment, exchange, intraday_only, debug_logs_flag
         )
 
         metrics = compute_metrics(trades, equity_curve, initial_capital, split_df)
-        if verbose:
+        if debug_logs_flag:
             log_metrics(metrics, token, interval, fast, slow, split_name)
 
         # Save trade details
@@ -160,7 +160,7 @@ def simulate_strategy(
         df, initial_capital,
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
-        slippage_pct, segment, exchange, intraday_only, verbose
+        slippage_pct, segment, exchange, intraday_only, debug_logs_flag
 ):
     capital = initial_capital
     equity_curve = []
@@ -192,7 +192,7 @@ def simulate_strategy(
                 if trade is not None:
                     position = OrderPosition.LONG.name
                     bars_held = 0
-                    if verbose:
+                    if debug_logs_flag:
                         log_trade(TradeEvent.ENTRY.name, trade, i)
             elif signal_short == 1 and (last_signal != -1):
                 trade, entry_price, qty, stop_price, target_price, trail_low = try_short_entry(
@@ -201,7 +201,7 @@ def simulate_strategy(
                 if trade is not None:
                     position = OrderPosition.SHORT.name
                     bars_held = 0
-                    if verbose:
+                    if debug_logs_flag:
                         log_trade(TradeEvent.ENTRY.name, trade, i)
         else:
             bars_held += 1
@@ -219,7 +219,7 @@ def simulate_strategy(
                     trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
                     trades.append(trade)
                     capital += pnl
-                    if verbose:
+                    if debug_logs_flag:
                         log_trade(TradeEvent.EXIT.name, trade, i)
                     position, bars_held, entry_price, qty, stop_price, target_price, trail_high, trail_low = reset_state()
             elif position == OrderPosition.SHORT.name:
@@ -234,7 +234,7 @@ def simulate_strategy(
                     trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
                     trades.append(trade)
                     capital += pnl
-                    if verbose:
+                    if debug_logs_flag:
                         log_trade(TradeEvent.EXIT.name, trade, i)
                     position, bars_held, entry_price, qty, stop_price, target_price, trail_high, trail_low = reset_state()
         last_signal = 1 if signal_long == 1 else (-1 if signal_short == 1 else 0)
