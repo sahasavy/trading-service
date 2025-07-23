@@ -1,38 +1,14 @@
 from src.market_data.historical_data import fetch_and_store_historical
 import yaml
 
+from src.utils.kite_client_util import normalize_interval
+
 CONFIG_PATH = "config/config.yaml"
 
 
 def read_config():
     with open(CONFIG_PATH, 'r') as file:
         return yaml.safe_load(file)
-
-
-def normalize_interval(custom_interval):
-    """
-    Converts various custom intervals to KiteConnect-accepted values.
-    Raises ValueError for invalid intervals.
-    """
-    valid_intervals = {
-        "1m": "minute",
-        "3m": "3minute",
-        "5m": "5minute",
-        "10m": "10minute",
-        "15m": "15minute",
-        "30m": "30minute",
-        "1h": "60minute",
-        "1d": "day",
-    }
-
-    key = custom_interval.strip().lower()
-    if key in valid_intervals:
-        return valid_intervals[key]
-    else:
-        raise ValueError(
-            f"Unsupported interval '{custom_interval}'. "
-            "Allowed: 1m, 3m, 5m, 10m, 15m, 30m, 1h, 1d"
-        )
 
 
 if __name__ == "__main__":

@@ -4,23 +4,9 @@ import yaml
 from src.backtest.engine import run_backtest
 from src.backtest.logger import log_run_header
 from src.market_data.historical_data import fetch_and_store_historical
+from src.utils.kite_client_util import normalize_interval
 
 CONFIG_PATH = "config/config.yaml"
-
-
-def normalize_interval(interval):
-    m = interval.strip().lower()
-    mp = {
-        "1m": "minute",
-        "3m": "3minute",
-        "5m": "5minute",
-        "10m": "10minute",
-        "15m": "15minute",
-        "30m": "30minute",
-        "1h": "60minute",
-        "1d": "day"
-    }
-    return mp[m]
 
 
 def load_or_fetch_data(trading_symbol, interval_key, from_date, to_date):
