@@ -23,29 +23,28 @@ def normalize_interval(interval):
     return mp[m]
 
 
-def load_or_fetch_data(token, interval_key, from_date, to_date):
-    filename = f"data/historical/{token}_{interval_key}.csv"
+def load_or_fetch_data(trading_symbol, interval_key, from_date, to_date):
+    filename = f"data/historical/{trading_symbol}_{interval_key}.csv"
     if os.path.exists(filename):
         df = pd.read_csv(filename, parse_dates=['date'])
-        print(f"✅ Loaded data for {token} {interval_key} from {filename}")
+        print(f"✅ Loaded data for {trading_symbol} {interval_key} from {filename}")
         return df
     else:
-        print(f"⬇️  Data for {token} {interval_key} not found, fetching...")
-        fetch_and_store_historical(token, from_date, to_date, interval_key)
+        print(f"⬇️  Data for {trading_symbol} {interval_key} not found, fetching...")
+        fetch_and_store_historical(trading_symbol, from_date, to_date, interval_key)
         if os.path.exists(filename):
             df = pd.read_csv(filename, parse_dates=['date'])
             return df
         else:
-            print(f"❌ Failed to fetch data for {token} {interval_key}")
+            print(f"❌ Failed to fetch data for {trading_symbol} {interval_key}")
             return pd.DataFrame()
 
 
 def main():
     config = yaml.safe_load(open(CONFIG_PATH))
+
     backtest_cfg = config['backtest']
-    strategy_cfg = config['strategy']
-    brokerage_cfg = config['brokerage']
-    tokens = backtest_cfg['tokens']
+    trading_symbols = backtest_cfg['trading_symbols']
     intervals = backtest_cfg['intervals']
     from_date = backtest_cfg['from_date']
     to_date = backtest_cfg['to_date']
@@ -60,26 +59,35 @@ def main():
     fill_rate = backtest_cfg.get('fill_rate', 1.0)
     slippage_pct = backtest_cfg.get('slippage_pct', 0.001)
     intraday_only = backtest_cfg.get('intraday_only', True)
+
+    brokerage_cfg = config['brokerage']
     segment = brokerage_cfg.get('segment')
     exchange = brokerage_cfg.get('exchange')
+
+    strategy_cfg = config['strategy']
+    strategy_name = strategy_cfg['name']
     fast_list = strategy_cfg['ema_fast_list']
     slow_list = strategy_cfg['ema_slow_list']
-    strategy_name = strategy_cfg['name']
 
     summary_metrics = []
-    for token in tokens:
+    for trading_symbol in trading_symbols:
         for interval in intervals:
             interval_key = normalize_interval(interval)
-            df = load_or_fetch_data(token, interval_key, from_date, to_date)
+            df = load_or_fetch_data(trading_symbol, interval_key, from_date, to_date)
+
             if df.empty:
                 continue
+
             df.sort_values('date', inplace=True)
             df.reset_index(drop=True, inplace=True)
+
             for fast in fast_list:
                 for slow in slow_list:
                     if fast >= slow:
                         continue
-                    log_run_header(token, interval, fast, slow)
+
+                    log_run_header(trading_symbol, interval, fast, slow)
+
                     _, metrics = run_backtest(
                         df,
                         strategy_name,
@@ -99,13 +107,15 @@ def main():
                         intraday_only,
                         verbose=True,
                         save_results=True,
-                        token=token,
+                        token=trading_symbol,
                         interval=interval_key,
                     )
+
                     # Save summary metrics for all splits (all/train/test)
                     for metric in metrics:
-                        metric.update(dict(token=token, interval=interval_key, fast=fast, slow=slow))
+                        metric.update(dict(token=trading_symbol, interval=interval_key, fast=fast, slow=slow))
                         summary_metrics.append(metric)
+
     # Save all metrics summary
     if summary_metrics:
         pd.DataFrame(summary_metrics).to_csv("data/results/metrics_summary.csv", index=False)

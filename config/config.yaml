@@ -3,10 +3,10 @@ kite:
   api_secret: "YOUR_SECRET"
 
 historical:
-  trading_symbol: "HDFCBANK"
-  from_date: "2025-01-01 09:15:00"
-  to_date: "2025-07-19 15:30:00"
-  interval: "1m"
+  trading_symbols: [ "RELIANCE", "TCS" ]
+  intervals: [ "1m", "10m" ]
+  from_date: "2023-01-01 09:15:00"
+  to_date: "2025-07-22 15:30:00"
 
 websocket:
   default_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
@@ -34,8 +34,8 @@ brokerage:
   exchange: "NSE"
 
 backtest:
-  tokens: ["INFY", "TCS", "HDFCBANK"]
-  intervals: ["3m", "5m"]
+  trading_symbols: [ "INFY", "TCS", "HDFCBANK" ]
+  intervals: [ "3m", "5m" ]
   from_date: "2023-01-01 09:15:00"
   to_date: "2025-07-22 15:30:00"
   train_split: 0.7
@@ -52,5 +52,5 @@ backtest:
 
 strategy:
   name: "EMA_CROSS"
-  ema_fast_list: [8, 9, 12]
-  ema_slow_list: [20, 21, 26]
+  ema_fast_list: [ 8, 9, 12 ]
+  ema_slow_list: [ 20, 21, 26 ]
