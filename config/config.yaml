@@ -3,10 +3,10 @@ kite:
   api_secret: "YOUR_SECRET"
 
 historical:
-  trading_symbol: "HDFCBANK"
-  from_date: "2025-01-01 09:15:00"
-  to_date: "2025-07-19 15:30:00"
-  interval: "1m"
+  trading_symbols: [ "RELIANCE", "TCS" ]
+  intervals: [ "1m", "10m" ]
+  from_date: "2023-01-01 09:15:00"
+  to_date: "2025-07-22 15:30:00"
 
 websocket:
   default_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
@@ -34,23 +34,25 @@ brokerage:
   exchange: "NSE"
 
 backtest:
-  tokens: ["INFY", "TCS", "HDFCBANK"]
-  intervals: ["3m", "5m"]
-  from_date: "2023-01-01 09:15:00"
-  to_date: "2025-07-22 15:30:00"
-  train_split: 0.7
-  initial_capital: 1000000
-  stop_loss_pct: 0.02           # 2%
-  trailing_stop_loss_pct: 0.02  # 2%
-  target_profit_pct: 0.04       # 4%
-  hold_min_bars: 2
-  hold_max_bars: 120
-  contract_size: 1
-  fill_rate: 1.0
-  slippage_pct: 0.001
-  intraday_only: true
-
-strategy:
-  name: "EMA_CROSS"
-  ema_fast_list: [8, 9, 12]
-  ema_slow_list: [20, 21, 26]
+  data:
+    trading_symbols: [ "INFY", "TCS", "HDFCBANK" ]
+    intervals: [ "3m", "5m" ]
+    from_date: "2023-01-01 09:15:00"
+    to_date: "2025-07-22 15:30:00"
+  strategy:
+    name: "EMA_CROSS"
+    ema_fast_list: [ 8, 9, 12 ]
+    ema_slow_list: [ 20, 21, 26 ]
+  simulation_params:
+    train_split: 0.7
+    initial_capital: 1000000
+    stop_loss_pct: 0.02           # 2%
+    trailing_stop_loss_pct: 0.02  # 2%
+    target_profit_pct: 0.04       # 4%
+    hold_min_bars: 2
+    hold_max_bars: 120
+    contract_size: 1
+    fill_rate: 1.0
+    slippage_pct: 0.001
+    intraday_only: true
+  debug_logs: true
