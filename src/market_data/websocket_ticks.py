@@ -7,9 +7,9 @@ import pytz
 import yaml
 from kiteconnect import KiteTicker
 
-from src.utils.instruments import get_instrument_token
-from src.utils.kite_client import get_authenticated_kite
-from src.utils.time_utils import get_current_ist_time
+from src.utils.instruments_util import get_instrument_token
+from src.utils.kite_client_util import get_authenticated_kite
+from src.utils.time_util import get_current_ist_time
 
 CONFIG_PATH = "config/config.yaml"
 DATA_DIR = "data/live_ticks"

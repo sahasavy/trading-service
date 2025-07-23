@@ -1,5 +1,5 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
-from src.utils.instruments import fetch_and_cache_instruments
+from src.utils.instruments_util import fetch_and_cache_instruments
 
 scheduler = BlockingScheduler()
 

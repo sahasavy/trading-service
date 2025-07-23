@@ -14,6 +14,7 @@ def compute_metrics(trades, equity_curve, initial_capital, df):
 
     # Equity curve as pd.Series
     eq_series = pd.Series([x['equity'] for x in equity_curve])
+
     # Daily returns for volatility & Sharpe
     eq_curve = pd.DataFrame(equity_curve)
     eq_curve['date'] = pd.to_datetime(eq_curve['date'])

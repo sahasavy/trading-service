@@ -44,6 +44,7 @@ def main():
     config = yaml.safe_load(open(CONFIG_PATH))
     backtest_cfg = config['backtest']
     strategy_cfg = config['strategy']
+    brokerage_cfg = config['brokerage']
     tokens = backtest_cfg['tokens']
     intervals = backtest_cfg['intervals']
     from_date = backtest_cfg['from_date']
@@ -59,8 +60,8 @@ def main():
     fill_rate = backtest_cfg.get('fill_rate', 1.0)
     slippage_pct = backtest_cfg.get('slippage_pct', 0.001)
     intraday_only = backtest_cfg.get('intraday_only', True)
-    segment = "EQUITY_INTRADAY"
-    exchange = "NSE"
+    segment = brokerage_cfg.get('segment')
+    exchange = brokerage_cfg.get('exchange')
     fast_list = strategy_cfg['ema_fast_list']
     slow_list = strategy_cfg['ema_slow_list']
     strategy_name = strategy_cfg['name']
@@ -102,9 +103,9 @@ def main():
                         interval=interval_key,
                     )
                     # Save summary metrics for all splits (all/train/test)
-                    for m in metrics:
-                        m.update(dict(token=token, interval=interval_key, fast=fast, slow=slow))
-                        summary_metrics.append(m)
+                    for metric in metrics:
+                        metric.update(dict(token=token, interval=interval_key, fast=fast, slow=slow))
+                        summary_metrics.append(metric)
     # Save all metrics summary
     if summary_metrics:
         pd.DataFrame(summary_metrics).to_csv("data/results/metrics_summary.csv", index=False)

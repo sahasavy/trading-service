@@ -1,6 +1,6 @@
 from kiteconnect import KiteConnect
 import yaml
-from src.utils.db_utils import save_access_token
+from src.utils.db_util import save_access_token
 
 CONFIG_PATH = "config/config.yaml"
 
