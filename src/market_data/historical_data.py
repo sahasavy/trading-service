@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import pytz
 
-from src.utils.instruments import get_instrument_token
-from src.utils.kite_client import get_authenticated_kite
+from src.utils.instruments_util import get_instrument_token
+from src.utils.kite_client_util import get_authenticated_kite
 
 IST = pytz.timezone("Asia/Kolkata")
 

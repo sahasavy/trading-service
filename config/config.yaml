@@ -30,8 +30,8 @@ indicators:
   - VOLUME_SPIKE
 
 brokerage:
-  segment: EQUITY_INTRADAY
-  exchange: NSE
+  segment: "EQUITY_INTRADAY"
+  exchange: "NSE"
 
 backtest:
   tokens: ["INFY", "TCS", "HDFCBANK"]

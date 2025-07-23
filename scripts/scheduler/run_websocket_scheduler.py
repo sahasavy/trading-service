@@ -1,6 +1,6 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 from src.market_data.websocket_ticks import start_websocket
-from src.utils.time_utils import get_current_ist_time
+from src.utils.time_util import get_current_ist_time
 import yaml
 
 CONFIG_PATH = "config/config.yaml"
