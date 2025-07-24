@@ -1,18 +1,13 @@
 from src.market_data.historical_data import fetch_and_store_historical
-import yaml
 
+from src.utils.file_util import read_config
 from src.utils.kite_client_util import normalize_interval
 
 CONFIG_PATH = "config/config.yaml"
 
 
-def read_config():
-    with open(CONFIG_PATH, 'r') as file:
-        return yaml.safe_load(file)
-
-
 if __name__ == "__main__":
-    config = read_config()
+    config = read_config(CONFIG_PATH)
 
     historical_cfg = config['historical']
     trading_symbols = historical_cfg['trading_symbols']

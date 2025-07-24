@@ -1,60 +1,66 @@
 import os
+
 import pandas as pd
-import yaml
-from src.backtest.engine import run_backtest
+
+from src.backtest.simulation_engine import run_simulation
 from src.backtest.logger import log_run_header
 from src.market_data.historical_data import fetch_and_store_historical
+from src.utils.file_util import read_config
+from src.utils.grid_search import construct_strategy_param_grid
 from src.utils.kite_client_util import normalize_interval
 
 CONFIG_PATH = "config/config.yaml"
+BACKTEST_CONFIG_PATH = "config/backtest-config.yaml"
 
 
 def load_or_fetch_data(trading_symbol, interval_key, from_date, to_date):
+    print(f"\n==============================================================================")
     filename = f"data/historical/{trading_symbol}_{interval_key}.csv"
+    df = pd.DataFrame()
+
     if os.path.exists(filename):
         df = pd.read_csv(filename, parse_dates=['date'])
         print(f"✅ Loaded data for {trading_symbol} {interval_key} from {filename}")
-        return df
+        # return df
     else:
-        print(f"⬇️  Data for {trading_symbol} {interval_key} not found, fetching...")
+        print(f"⬇️ Data for {trading_symbol} {interval_key} not found, fetching...")
         fetch_and_store_historical(trading_symbol, from_date, to_date, interval_key)
         if os.path.exists(filename):
             df = pd.read_csv(filename, parse_dates=['date'])
-            return df
+            # return df
         else:
             print(f"❌ Failed to fetch data for {trading_symbol} {interval_key}")
-            return pd.DataFrame()
+            # return pd.DataFrame()
+    print(f"==============================================================================")
+    return df
 
 
 def main():
-    config = yaml.safe_load(open(CONFIG_PATH))
+    config = read_config(CONFIG_PATH)
+    backtest_config = read_config(BACKTEST_CONFIG_PATH)
 
-    backtest_cfg = config['backtest']
-    backtest_data_cfg = backtest_cfg.get('data')
-    backtest_strategy_cfg = backtest_cfg.get('strategy')
-    backtest_simulation_params_cfg = backtest_cfg.get('simulation_params')
+    backtest_cfg = backtest_config['backtest']
+    data_cfg = backtest_cfg['data']
+    strategies = backtest_cfg['strategies']
+    simulation_params = backtest_cfg['simulation_params']
     debug_logs_flag = backtest_cfg.get('debug_logs', True)
 
-    trading_symbols = backtest_data_cfg['trading_symbols']
-    intervals = backtest_data_cfg['intervals']
-    from_date = backtest_data_cfg['from_date']
-    to_date = backtest_data_cfg['to_date']
+    trading_symbols = data_cfg['trading_symbols']
+    intervals = data_cfg['intervals']
+    from_date = data_cfg['from_date']
+    to_date = data_cfg['to_date']
 
-    strategy_name = backtest_strategy_cfg['name']
-    fast_list = backtest_strategy_cfg['ema_fast_list']
-    slow_list = backtest_strategy_cfg['ema_slow_list']
-
-    train_split = backtest_simulation_params_cfg.get('train_split', 1.0)
-    initial_capital = backtest_simulation_params_cfg.get('initial_capital', 1000000)
-    stop_loss_pct = backtest_simulation_params_cfg.get('stop_loss_pct', 0.02)
-    trailing_stop_loss_pct = backtest_simulation_params_cfg.get('trailing_stop_loss_pct', 0.02)
-    target_profit_pct = backtest_simulation_params_cfg.get('target_profit_pct', 0.04)
-    hold_min_bars = backtest_simulation_params_cfg.get('hold_min_bars', 2)
-    hold_max_bars = backtest_simulation_params_cfg.get('hold_max_bars', 120)
-    contract_size = backtest_simulation_params_cfg.get('contract_size', 1)
-    fill_rate = backtest_simulation_params_cfg.get('fill_rate', 1.0)
-    slippage_pct = backtest_simulation_params_cfg.get('slippage_pct', 0.001)
-    intraday_only = backtest_simulation_params_cfg.get('intraday_only', True)
+    train_split = simulation_params.get('train_split', 1.0)
+    initial_capital = simulation_params.get('initial_capital', 1000000)
+    stop_loss_pct = simulation_params.get('stop_loss_pct', 0.02)
+    trailing_stop_loss_pct = simulation_params.get('trailing_stop_loss_pct', 0.02)
+    target_profit_pct = simulation_params.get('target_profit_pct', 0.04)
+    hold_min_bars = simulation_params.get('hold_min_bars', 2)
+    hold_max_bars = simulation_params.get('hold_max_bars', 120)
+    contract_size = simulation_params.get('contract_size', 1)
+    fill_rate = simulation_params.get('fill_rate', 1.0)
+    slippage_pct = simulation_params.get('slippage_pct', 0.001)
+    intraday_only = simulation_params.get('intraday_only', True)
 
     brokerage_cfg = config['brokerage']
     segment = brokerage_cfg.get('segment')
@@ -72,17 +78,14 @@ def main():
             df.sort_values('date', inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-            for fast in fast_list:
-                for slow in slow_list:
-                    if fast >= slow:
-                        continue
+            # NOTE: The strategy engine is designed to work only on a single strategy each time for a particular df.
+            for strategy in strategies:
+                for strategy_params in construct_strategy_param_grid(strategy):
+                    log_run_header(trading_symbol, interval, strategy_params)
 
-                    log_run_header(trading_symbol, interval, fast, slow)
-
-                    _, metrics = run_backtest(
+                    _, metrics = run_simulation(
                         df,
-                        strategy_name,
-                        fast, slow,
+                        strategy_params,
                         initial_capital,
                         stop_loss_pct,
                         trailing_stop_loss_pct,
@@ -104,13 +107,16 @@ def main():
 
                     # Save summary metrics for all splits (all/train/test)
                     for metric in metrics:
-                        metric.update(dict(token=trading_symbol, interval=interval_key, fast=fast, slow=slow))
+                        metric.update(dict(token=trading_symbol, interval=interval_key))
                         summary_metrics.append(metric)
 
     # Save all metrics summary
     if summary_metrics:
+        os.makedirs("data/results", exist_ok=True)
         pd.DataFrame(summary_metrics).to_csv("data/results/metrics_summary.csv", index=False)
+        print(f"\n==============================================================================")
         print("✅ All metrics summary saved to data/results/metrics_summary.csv")
+        print(f"==============================================================================")
 
 
 if __name__ == "__main__":

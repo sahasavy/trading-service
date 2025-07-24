@@ -1,13 +1,8 @@
-import yaml
 from src.indicators.registry import get_indicator
+from src.utils.file_util import read_config
 
 CONFIG_PATH = "config/config.yaml"
 INDICATOR_CONFIG_PATH = "config/indicator-config.yaml"
-
-
-def read_config(path):
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
 
 
 def apply_indicators(df):

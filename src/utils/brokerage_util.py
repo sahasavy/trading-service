@@ -1,18 +1,12 @@
-import yaml
-
 from src.commons.constants.constants import OrderSide, Exchange, Segment
+from src.utils.file_util import read_config
 
 BROKERAGE_CFG = "config/brokerage-config.yml"
 
 
-def load_brokerage_config():
-    with open(BROKERAGE_CFG) as f:
-        return yaml.safe_load(f)
-
-
 def calculate_brokerage(segment, side, price, qty, exchange):
-    cfg = load_brokerage_config()
-    seg = cfg['segments'][segment]
+    brokerage_cfg = read_config(BROKERAGE_CFG)
+    seg = brokerage_cfg['segments'][segment]
     turnover = price * qty
 
     # Brokerage
@@ -34,7 +28,7 @@ def calculate_brokerage(segment, side, price, qty, exchange):
     txn = turnover * txn_pct
 
     # SEBI
-    sebi = turnover * cfg['gst_percent']
+    sebi = turnover * brokerage_cfg['gst_percent']
 
     # Stamp duty only on BUY
     stamp = turnover * seg['stamp_percent_buy'] if side == OrderSide.BUY.name else 0
@@ -43,7 +37,7 @@ def calculate_brokerage(segment, side, price, qty, exchange):
     sebi = turnover * (seg['sebi_per_crore'] / 1e7)
 
     # GST on (brokerage + txn + sebi)
-    gst = (raw_brokerage + txn + sebi) * cfg['gst_percent']
+    gst = (raw_brokerage + txn + sebi) * brokerage_cfg['gst_percent']
 
     total = raw_brokerage + stt + txn + sebi + stamp + gst
     return dict(

@@ -1,0 +1,37 @@
+backtest:
+  data:
+    trading_symbols: [ "RELIANCE", "TCS", "INFY", "HDFCBANK" ]
+    intervals: [ "1m", "3m", "5m", "10m" ]
+    from_date: "2023-01-01 09:15:00"
+    to_date: "2025-07-22 15:30:00"
+  strategies:
+    - name: "EMA_CROSS"
+      fast_list: [ 8, 9, 12 ]
+      slow_list: [ 20, 21, 26 ]
+    - name: "SMA_CROSS"
+      fast_list: [ 20, 50 ]
+      slow_list: [ 50, 200 ]
+    - name: "RSI"
+      period_list: [ 14, 21 ]
+      overbought_list: [ 70, 80 ]
+      oversold_list: [ 30, 20 ]
+    - name: "MACD"
+      fast_list: [ 12 ]
+      slow_list: [ 26 ]
+      signal_list: [ 9 ]
+    - name: "SUPER_TREND"
+      period_list: [ 10, 14 ]
+      multiplier_list: [ 2.0, 3.0 ]
+  simulation_params:
+    train_split: 0.7
+    initial_capital: 1000000
+    stop_loss_pct: 0.02           # 2%
+    trailing_stop_loss_pct: 0.02  # 2%
+    target_profit_pct: 0.04       # 4%
+    hold_min_bars: 2
+    hold_max_bars: 120
+    contract_size: 1
+    fill_rate: 1.0
+    slippage_pct: 0.001
+    intraday_only: true
+  debug_logs: true
