@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from src.backtest.engine import run_simulation
+from src.backtest.simulation_engine import run_simulation
 from src.backtest.logger import log_run_header
 from src.market_data.historical_data import fetch_and_store_historical
 from src.utils.file_util import read_config
@@ -14,20 +14,25 @@ BACKTEST_CONFIG_PATH = "config/backtest-config.yaml"
 
 
 def load_or_fetch_data(trading_symbol, interval_key, from_date, to_date):
+    print(f"\n==============================================================================")
     filename = f"data/historical/{trading_symbol}_{interval_key}.csv"
+    df = pd.DataFrame()
+
     if os.path.exists(filename):
         df = pd.read_csv(filename, parse_dates=['date'])
         print(f"✅ Loaded data for {trading_symbol} {interval_key} from {filename}")
-        return df
+        # return df
     else:
-        print(f"⬇️  Data for {trading_symbol} {interval_key} not found, fetching...")
+        print(f"⬇️ Data for {trading_symbol} {interval_key} not found, fetching...")
         fetch_and_store_historical(trading_symbol, from_date, to_date, interval_key)
         if os.path.exists(filename):
             df = pd.read_csv(filename, parse_dates=['date'])
-            return df
+            # return df
         else:
             print(f"❌ Failed to fetch data for {trading_symbol} {interval_key}")
-            return pd.DataFrame()
+            # return pd.DataFrame()
+    print(f"==============================================================================")
+    return df
 
 
 def main():
@@ -109,7 +114,9 @@ def main():
     if summary_metrics:
         os.makedirs("data/results", exist_ok=True)
         pd.DataFrame(summary_metrics).to_csv("data/results/metrics_summary.csv", index=False)
+        print(f"\n==============================================================================")
         print("✅ All metrics summary saved to data/results/metrics_summary.csv")
+        print(f"==============================================================================")
 
 
 if __name__ == "__main__":

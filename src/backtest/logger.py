@@ -1,10 +1,10 @@
 from src.commons.constants.constants import TradeEvent
-from src.utils.file_util import construct_strategy_hyperparam_str
+from src.utils.grid_search import construct_strategy_hyperparam_str
 
 
 def log_run_header(token, interval, params):
     pstr = construct_strategy_hyperparam_str(params)
-    print(f"\n\n========== Backtest: {token} {interval} {params['name']} {pstr} ==========")
+    print(f"\n========== Backtest: {token} {interval} {params['name']} {pstr} ==========")
 
 
 def log_trade(event, trade, idx):

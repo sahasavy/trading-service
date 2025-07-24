@@ -1,7 +1,7 @@
 backtest:
   data:
-    trading_symbols: [ "INFY", "TCS", "HDFCBANK" ]
-    intervals: [ "3m", "5m" ]
+    trading_symbols: [ "RELIANCE", "TCS", "INFY", "HDFCBANK" ]
+    intervals: [ "1m", "3m", "5m", "10m" ]
     from_date: "2023-01-01 09:15:00"
     to_date: "2025-07-22 15:30:00"
   strategies:
