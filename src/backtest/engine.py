@@ -1,26 +1,34 @@
 import os
+
 import pandas as pd
-from src.backtest.signals import compute_ema_signals
+
+from src.backtest.logger import log_trade, log_metrics
 from src.backtest.metrics import compute_metrics
+from src.backtest.signals import add_signals
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason
 from src.utils.brokerage_util import calculate_brokerage
-from src.backtest.logger import log_trade, log_metrics
+from src.utils.grid_search import construct_strategy_hyperparam_str
 
 
 def run_simulation(
-        df, strategy_name, fast, slow, initial_capital,
+        df, strategy_params, initial_capital,
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
         slippage_pct, segment, exchange, train_split=1.0, intraday_only=True,
         debug_logs_flag=True, save_results=True, token="", interval=""
 ):
-    df = df.copy()
-    compute_ema_signals(df, fast, slow)
-    split_idx = int(len(df) * train_split)
+    # Always re-add signals per param set
+    df_per_strategy = df.copy()
+
+    add_signals(df_per_strategy, strategy_params['name'],
+                {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in
+                 strategy_params.items() if hyperparam_key != 'name'})
+
+    split_idx = int(len(df_per_strategy) * train_split)
     splits = [
-        ('all', df),
-        ('train', df.iloc[:split_idx]),
-        ('test', df.iloc[split_idx:]) if train_split < 1.0 else None
+        ('all', df_per_strategy),
+        ('train', df_per_strategy.iloc[:split_idx]),
+        ('test', df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
     ]
 
     all_trades = []
@@ -34,21 +42,22 @@ def run_simulation(
 
         metrics = compute_metrics(trades, equity_curve, initial_capital, split_df)
         if debug_logs_flag:
-            log_metrics(metrics, token, interval, fast, slow, split_name)
+            log_metrics(metrics, token, interval, strategy_params, split_name)
 
         # Save trade details
         if save_results and split_name == 'all' and len(trades) > 0:
             out_dir = "data/results"
             os.makedirs(out_dir, exist_ok=True)
             trades_df = pd.DataFrame(trades)
-            filename = f"trades_{token}_{interval}_{strategy_name}_{fast}-{slow}.csv"
-            # TODO
-            # param_str = "-".join(str(params.get(k)) for k in sorted(params.keys()) if k != "name")
-            # filename = f"trades_{token}_{interval}_{params['name']}_{param_str}.csv"
+            strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
+            filename = f"trades_{token}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
             trades_df.to_csv(f"{out_dir}/{filename}", index=False)
 
         all_trades.extend(trades)
         metrics['split'] = split_name
+        metrics['strategy'] = strategy_params['name']
+        metrics.update({hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in
+                        strategy_params.items() if hyperparam_key != 'name'})
         all_metrics.append(metrics)
     return all_trades, all_metrics
 
@@ -115,7 +124,7 @@ def manage_long_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_stop
     elif target_price is not None and high >= target_price:
         exit_price = target_price * (1 - slippage_pct)
         reason = TradeExitReason.TARGET.name
-    elif row['EMA_CROSS_SIGNAL_LONG'] == 0 and (bars_held >= hold_min_bars):
+    elif row['LONG_SIGNAL'] == 0 and (bars_held >= hold_min_bars):
         exit_price = price * (1 - slippage_pct)
         reason = TradeExitReason.CROSS_DOWN.name
     elif hold_max_bars and bars_held >= hold_max_bars:
@@ -143,7 +152,7 @@ def manage_short_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_sto
     elif target_price is not None and low <= target_price:
         exit_price = target_price * (1 + slippage_pct)
         reason = TradeExitReason.TARGET.name
-    elif row['EMA_CROSS_SIGNAL_SHORT'] == 0 and (bars_held >= hold_min_bars):
+    elif row['SHORT_SIGNAL'] == 0 and (bars_held >= hold_min_bars):
         exit_price = price * (1 + slippage_pct)
         reason = TradeExitReason.CROSS_UP.name
     elif hold_max_bars and bars_held >= hold_max_bars:
@@ -180,8 +189,8 @@ def simulate_strategy(
     trade = None
 
     for i, row in df.iterrows():
-        signal_long = row['EMA_CROSS_SIGNAL_LONG']
-        signal_short = row['EMA_CROSS_SIGNAL_SHORT']
+        signal_long = row['LONG_SIGNAL']
+        signal_short = row['SHORT_SIGNAL']
         is_last_bar = (i == len(df) - 1)
         next_day = (i + 1 < len(df)) and (row['date'].date() != df.iloc[i + 1]['date'].date())
         eod_exit = intraday_only and (is_last_bar or next_day)

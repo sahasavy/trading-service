@@ -14,3 +14,8 @@ def construct_strategy_param_grid(strategy_dict):
         strategy_param_grid = {"name": strategy_dict['name']}
         strategy_param_grid.update(params)
         yield strategy_param_grid
+
+
+def construct_strategy_hyperparam_str(strategy_params):
+    """Create a string like 8-21, 14-70-30, etc. from params dict, excluding 'name'."""
+    return "-".join(str(strategy_params[k]) for k in sorted(strategy_params) if k != "name")

@@ -4,7 +4,6 @@ import pandas as pd
 
 from src.backtest.engine import run_simulation
 from src.backtest.logger import log_run_header
-from src.backtest.signals import add_signals
 from src.market_data.historical_data import fetch_and_store_historical
 from src.utils.file_util import read_config
 from src.utils.grid_search import construct_strategy_param_grid
@@ -77,18 +76,11 @@ def main():
             # NOTE: The strategy engine is designed to work only on a single strategy each time for a particular df.
             for strategy in strategies:
                 for strategy_params in construct_strategy_param_grid(strategy):
-                    df_per_strategy = df.copy()
-
-                    add_signals(df_per_strategy, strategy_params['name'],
-                                {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in
-                                 strategy_params.items() if hyperparam_key != 'name'})
-
                     log_run_header(trading_symbol, interval, strategy_params)
 
                     _, metrics = run_simulation(
-                        df_per_strategy,
-                        strategy_params['name'],
-                        strategy_params.get('fast'), strategy_params.get('slow'),
+                        df,
+                        strategy_params,
                         initial_capital,
                         stop_loss_pct,
                         trailing_stop_loss_pct,
@@ -110,7 +102,7 @@ def main():
 
                     # Save summary metrics for all splits (all/train/test)
                     for metric in metrics:
-                        metric.update(dict(token=trading_symbol, interval=interval_key, **strategy_params))
+                        metric.update(dict(token=trading_symbol, interval=interval_key))
                         summary_metrics.append(metric)
 
     # Save all metrics summary
