@@ -1,14 +1,11 @@
 from src.market_data.websocket_ticks import start_websocket
-import yaml
+
+from src.utils.file_util import read_config
 
 CONFIG_PATH = "config/config.yaml"
 
-def read_config():
-    with open(CONFIG_PATH, 'r') as file:
-        return yaml.safe_load(file)
-
 if __name__ == "__main__":
-    config = read_config()
+    config = read_config(CONFIG_PATH)
     user_input = input("Enter symbols (comma-separated, press enter for default list from Config): ").strip()
 
     if user_input:

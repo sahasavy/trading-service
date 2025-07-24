@@ -1,9 +1,12 @@
+from src.commons.constants.constants import TradeEvent
+
+
 def log_run_header(token, interval, fast, slow):
     print(f"\n\n========== Backtest: {token} {interval} EMA({fast},{slow}) ==========")
 
 
 def log_trade(event, trade, idx):
-    if event == "ENTRY":
+    if event == TradeEvent.ENTRY.name:
         print(
             f"🟢 [{trade['direction']}] Entry idx {idx} | {trade['entry_time']} @ {trade['entry_price']:.2f} | Qty={trade['qty']}")
     else:

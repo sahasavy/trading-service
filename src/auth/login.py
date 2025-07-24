@@ -1,17 +1,13 @@
 from kiteconnect import KiteConnect
-import yaml
+
 from src.utils.db_util import save_access_token
+from src.utils.file_util import read_config
 
 CONFIG_PATH = "config/config.yaml"
 
 
-def read_config():
-    with open(CONFIG_PATH, 'r') as file:
-        return yaml.safe_load(file)
-
-
 def authenticate_interactively():
-    config = read_config()
+    config = read_config(CONFIG_PATH)
     kite = KiteConnect(api_key=config['kite']['api_key'])
 
     login_url = kite.login_url()

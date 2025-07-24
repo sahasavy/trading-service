@@ -7,7 +7,7 @@ from src.utils.brokerage_util import calculate_brokerage
 from src.backtest.logger import log_trade, log_metrics
 
 
-def run_backtest(
+def run_simulation(
         df, strategy_name, fast, slow, initial_capital,
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
@@ -41,8 +41,11 @@ def run_backtest(
             out_dir = "data/results"
             os.makedirs(out_dir, exist_ok=True)
             trades_df = pd.DataFrame(trades)
-            filename = f"{out_dir}/trades_{token}_{interval}_{strategy_name}_{fast}-{slow}.csv"
-            trades_df.to_csv(filename, index=False)
+            filename = f"trades_{token}_{interval}_{strategy_name}_{fast}-{slow}.csv"
+            # TODO
+            # param_str = "-".join(str(params.get(k)) for k in sorted(params.keys()) if k != "name")
+            # filename = f"trades_{token}_{interval}_{params['name']}_{param_str}.csv"
+            trades_df.to_csv(f"{out_dir}/{filename}", index=False)
 
         all_trades.extend(trades)
         metrics['split'] = split_name

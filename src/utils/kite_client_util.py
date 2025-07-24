@@ -2,7 +2,7 @@ from kiteconnect import KiteConnect
 
 from src.commons.constants.constants import CandleInterval
 from src.utils.db_util import get_latest_access_token
-import yaml
+from src.utils.file_util import read_config
 
 CONFIG_PATH = "config/config.yaml"
 INTERVAL_MAP = {
@@ -17,13 +17,8 @@ INTERVAL_MAP = {
 }
 
 
-def read_config():
-    with open(CONFIG_PATH, 'r') as file:
-        return yaml.safe_load(file)
-
-
 def get_authenticated_kite():
-    config = read_config()
+    config = read_config(CONFIG_PATH)
     access_token = get_latest_access_token(config['kite']['api_key'])
     if not access_token:
         raise Exception("No active login. Run login first.")
