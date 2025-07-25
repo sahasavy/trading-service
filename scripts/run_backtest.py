@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from src.backtest.simulation_engine import run_simulation
-from src.backtest.logger import log_run_header
+from src.utils.logger_util import log_backtest_run_header
 from src.market_data.historical_data import fetch_and_store_historical
 from src.utils.file_util import read_config
 from src.utils.grid_search import construct_strategy_param_grid
@@ -81,7 +81,7 @@ def main():
             # NOTE: The strategy engine is designed to work only on a single strategy each time for a particular df.
             for strategy in strategies:
                 for strategy_params in construct_strategy_param_grid(strategy):
-                    log_run_header(trading_symbol, interval, strategy_params)
+                    log_backtest_run_header(trading_symbol, interval, strategy_params)
 
                     _, metrics = run_simulation(
                         df,
