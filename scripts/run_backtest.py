@@ -1,12 +1,13 @@
 import os
+from datetime import datetime
 
 import pandas as pd
 
 from src.backtest.simulation_engine import run_simulation
 from src.utils.logger_util import log_backtest_run_header
 from src.market_data.historical_data import fetch_and_store_historical
-from src.utils.file_util import read_config
-from src.utils.grid_search import construct_strategy_param_grid
+from src.utils.file_util import read_config, get_next_simulation_dir, get_trade_dir, save_df_to_csv
+from src.utils.backtest_util import construct_strategy_param_grid
 from src.utils.kite_client_util import normalize_interval
 
 CONFIG_PATH = "config/config.yaml"
@@ -14,28 +15,29 @@ BACKTEST_CONFIG_PATH = "config/backtest-config.yaml"
 
 
 def load_or_fetch_data(trading_symbol, interval_key, from_date, to_date):
-    print(f"\n==============================================================================")
+    print(f"\n=====================================================================================")
     filename = f"data/historical/{trading_symbol}_{interval_key}.csv"
     df = pd.DataFrame()
 
     if os.path.exists(filename):
         df = pd.read_csv(filename, parse_dates=['date'])
         print(f"✅ Loaded data for {trading_symbol} {interval_key} from {filename}")
-        # return df
     else:
         print(f"⬇️ Data for {trading_symbol} {interval_key} not found, fetching...")
         fetch_and_store_historical(trading_symbol, from_date, to_date, interval_key)
         if os.path.exists(filename):
             df = pd.read_csv(filename, parse_dates=['date'])
-            # return df
         else:
             print(f"❌ Failed to fetch data for {trading_symbol} {interval_key}")
-            # return pd.DataFrame()
-    print(f"==============================================================================")
+    print(f"=====================================================================================")
     return df
 
 
 def main():
+    start_time = datetime.now()
+    print(f"\n=====================================================================================")
+    print(f"🕒 Simulation started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
     config = read_config(CONFIG_PATH)
     backtest_config = read_config(BACKTEST_CONFIG_PATH)
 
@@ -66,7 +68,12 @@ def main():
     segment = brokerage_cfg.get('segment')
     exchange = brokerage_cfg.get('exchange')
 
+    sim_dir = get_next_simulation_dir()
+    trade_dir = get_trade_dir(sim_dir)
+    print(f"📁 Saving simulation results to: {sim_dir}")
+
     summary_metrics = []
+
     for trading_symbol in trading_symbols:
         for interval in intervals:
             interval_key = normalize_interval(interval)
@@ -103,6 +110,7 @@ def main():
                         save_results=True,
                         token=trading_symbol,
                         interval=interval_key,
+                        trade_dir=trade_dir,
                     )
 
                     # Save summary metrics for all splits (all/train/test)
@@ -112,12 +120,19 @@ def main():
 
     # Save all metrics summary
     if summary_metrics:
-        os.makedirs("data/results", exist_ok=True)
-        pd.DataFrame(summary_metrics).to_csv("data/results/metrics_summary.csv", index=False)
-        print(f"\n==============================================================================")
-        print("✅ All metrics summary saved to data/results/metrics_summary.csv")
-        print(f"==============================================================================")
+        save_df_to_csv(
+            pd.DataFrame(summary_metrics),
+            os.path.join(sim_dir, "metrics_summary.csv")
+        )
+        print(f"\n=====================================================================================")
+        print(f"✅ All metrics summary saved to {os.path.join(sim_dir, 'metrics_summary.csv')}")
+        print(f"=====================================================================================")
 
+    end_time = datetime.now()
+    duration = end_time - start_time
+    print(f"\n🕒 Simulation finished at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"⏱️ Total simulation time: {str(duration).split('.')[0]} (hh:mm:ss)")
+    print(f"=====================================================================================\n")
 
 if __name__ == "__main__":
     main()

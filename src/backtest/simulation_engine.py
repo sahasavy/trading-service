@@ -1,5 +1,4 @@
 import os
-
 import pandas as pd
 
 from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
@@ -7,7 +6,7 @@ from src.utils.metrics_util import compute_backtest_metrics
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason
 from src.indicators.registry import add_signals
 from src.utils.brokerage_util import calculate_brokerage
-from src.utils.grid_search import construct_strategy_hyperparam_str
+from src.utils.backtest_util import construct_strategy_hyperparam_str
 
 
 def get_signal_column_names(strategy_name):
@@ -23,7 +22,8 @@ def run_simulation(
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
         slippage_pct, segment, exchange, train_split=1.0, intraday_only=True,
-        debug_logs_flag=True, save_results=True, token="", interval=""
+        debug_logs_flag=True, save_results=True, token="", interval="",
+        trade_dir=None
 ):
     # Always re-add signals per param set
     df_per_strategy = df.copy()
@@ -57,12 +57,13 @@ def run_simulation(
 
         # Save trade details
         if save_results and split_name == 'all' and len(trades) > 0:
-            out_dir = "data/results"
-            os.makedirs(out_dir, exist_ok=True)
+            if trade_dir is None:
+                raise RuntimeError("trade_dir not set")
             trades_df = pd.DataFrame(trades)
             strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
-            filename = f"trades_{token}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
-            trades_df.to_csv(f"{out_dir}/{filename}", index=False)
+            filename = f"{token}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
+            path = os.path.join(trade_dir, filename)
+            trades_df.to_csv(path, index=False)
 
         all_trades.extend(trades)
         metrics['split'] = split_name
