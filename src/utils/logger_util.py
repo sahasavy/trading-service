@@ -1,5 +1,5 @@
 from src.commons.constants.constants import TradeEvent
-from src.utils.grid_search import construct_strategy_hyperparam_str
+from src.utils.backtest_util import construct_strategy_hyperparam_str
 
 
 def log_backtest_run_header(token, interval, params):
