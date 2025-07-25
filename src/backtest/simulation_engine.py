@@ -2,12 +2,20 @@ import os
 
 import pandas as pd
 
-from src.backtest.logger import log_trade, log_metrics
-from src.backtest.metrics import compute_metrics
-from src.backtest.signals import add_signals
+from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
+from src.utils.metrics_util import compute_backtest_metrics
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason
+from src.indicators.registry import add_signals
 from src.utils.brokerage_util import calculate_brokerage
 from src.utils.grid_search import construct_strategy_hyperparam_str
+
+
+def get_signal_column_names(strategy_name):
+    """Returns the actual column names for LONG and SHORT signals for the given strategy."""
+    prefix = strategy_name.upper()
+    long_col = f"{prefix}_LONG_SIGNAL"
+    short_col = f"{prefix}_SHORT_SIGNAL"
+    return long_col, short_col
 
 
 def run_simulation(
@@ -20,9 +28,11 @@ def run_simulation(
     # Always re-add signals per param set
     df_per_strategy = df.copy()
 
-    add_signals(df_per_strategy, strategy_params['name'],
-                {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in
-                 strategy_params.items() if hyperparam_key != 'name'})
+    strategy_name = strategy_params['name']
+    add_signals(df_per_strategy, strategy_name,
+                {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
+                 hyperparam_key != 'name'})
+    long_signal_col, short_signal_col = get_signal_column_names(strategy_name)
 
     split_idx = int(len(df_per_strategy) * train_split)
     splits = [
@@ -37,12 +47,13 @@ def run_simulation(
         trades, equity_curve = simulate_strategy(
             split_df, initial_capital, stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
             contract_size, hold_min_bars, hold_max_bars, fill_rate,
-            slippage_pct, segment, exchange, intraday_only, debug_logs_flag
+            slippage_pct, segment, exchange, intraday_only, debug_logs_flag,
+            long_signal_col, short_signal_col
         )
 
-        metrics = compute_metrics(trades, equity_curve, initial_capital, split_df)
+        metrics = compute_backtest_metrics(trades, equity_curve, initial_capital, split_df)
         if debug_logs_flag:
-            log_metrics(metrics, token, interval, strategy_params, split_name)
+            log_backtest_metrics(metrics, token, interval, strategy_params, split_name)
 
         # Save trade details
         if save_results and split_name == 'all' and len(trades) > 0:
@@ -56,10 +67,100 @@ def run_simulation(
         all_trades.extend(trades)
         metrics['split'] = split_name
         metrics['strategy'] = strategy_params['name']
-        metrics.update({hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in
-                        strategy_params.items() if hyperparam_key != 'name'})
+        metrics.update(
+            {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
+             hyperparam_key != 'name'})
         all_metrics.append(metrics)
     return all_trades, all_metrics
+
+
+def simulate_strategy(
+        df, initial_capital,
+        stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
+        contract_size, hold_min_bars, hold_max_bars, fill_rate,
+        slippage_pct, segment, exchange, intraday_only, debug_logs_flag,
+        long_signal_col, short_signal_col
+):
+    capital = initial_capital
+    equity_curve = []
+    position = None
+    entry_price = 0
+    qty = 0
+    stop_price = None
+    target_price = None
+    trail_high = None
+    trail_low = None
+    trades = []
+    bars_held = 0
+    last_signal = 0  # 1=long, -1=short, 0=none
+    trade = None
+
+    for i, row in df.iterrows():
+        signal_long = row.get(long_signal_col, 0)
+        signal_short = row.get(short_signal_col, 0)
+        is_last_bar = (i == len(df) - 1)
+        next_day = (i + 1 < len(df)) and (row['date'].date() != df.iloc[i + 1]['date'].date())
+        eod_exit = intraday_only and (is_last_bar or next_day)
+
+        # ENTRY LOGIC
+        if position is None:
+            if signal_long == 1 and (last_signal != 1):
+                trade, entry_price, qty, stop_price, target_price, trail_high = try_long_entry(
+                    row, capital, fill_rate, contract_size, slippage_pct, stop_loss_pct, target_profit_pct
+                )
+                if trade is not None:
+                    position = OrderPosition.LONG.name
+                    bars_held = 0
+                    if debug_logs_flag:
+                        log_backtest_trade(TradeEvent.ENTRY.name, trade, i)
+            elif signal_short == 1 and (last_signal != -1):
+                trade, entry_price, qty, stop_price, target_price, trail_low = try_short_entry(
+                    row, capital, fill_rate, contract_size, slippage_pct, stop_loss_pct, target_profit_pct
+                )
+                if trade is not None:
+                    position = OrderPosition.SHORT.name
+                    bars_held = 0
+                    if debug_logs_flag:
+                        log_backtest_trade(TradeEvent.ENTRY.name, trade, i)
+        else:
+            bars_held += 1
+            exit_price = None
+            reason = None
+            if position == OrderPosition.LONG.name:
+                exit_price, reason, stop_price, trail_high = manage_long_exit(
+                    row, bars_held, hold_min_bars, hold_max_bars, trailing_stop_loss_pct,
+                    stop_price, trail_high, target_price, slippage_pct, eod_exit,
+                    long_signal_col=long_signal_col
+                )
+                if exit_price is not None and trade is not None:
+                    cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, entry_price, qty, exchange)['total']
+                    cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, exit_price, qty, exchange)['total']
+                    pnl = (exit_price - entry_price) * qty - cost_buy - cost_sell
+                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
+                    trades.append(trade)
+                    capital += pnl
+                    if debug_logs_flag:
+                        log_backtest_trade(TradeEvent.EXIT.name, trade, i)
+                    position, bars_held, entry_price, qty, stop_price, target_price, trail_high, trail_low = reset_state()
+            elif position == OrderPosition.SHORT.name:
+                exit_price, reason, stop_price, trail_low = manage_short_exit(
+                    row, bars_held, hold_min_bars, hold_max_bars, trailing_stop_loss_pct,
+                    stop_price, trail_low, target_price, slippage_pct, eod_exit,
+                    short_signal_col=short_signal_col
+                )
+                if exit_price is not None and trade is not None:
+                    cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, entry_price, qty, exchange)['total']
+                    cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, exit_price, qty, exchange)['total']
+                    pnl = (entry_price - exit_price) * qty - cost_buy - cost_sell
+                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
+                    trades.append(trade)
+                    capital += pnl
+                    if debug_logs_flag:
+                        log_backtest_trade(TradeEvent.EXIT.name, trade, i)
+                    position, bars_held, entry_price, qty, stop_price, target_price, trail_high, trail_low = reset_state()
+        last_signal = 1 if signal_long == 1 else (-1 if signal_short == 1 else 0)
+        equity_curve.append(dict(date=row['date'], equity=capital))
+    return trades, equity_curve
 
 
 def try_long_entry(row, capital, fill_rate, contract_size, slippage_pct, stop_loss_pct, target_profit_pct):
@@ -107,24 +208,23 @@ def try_short_entry(row, capital, fill_rate, contract_size, slippage_pct, stop_l
 
 
 def manage_long_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_stop_loss_pct,
-                     stop_price, trail_high, target_price, slippage_pct, eod_exit):
+                     stop_price, trail_high, target_price, slippage_pct, eod_exit,
+                     long_signal_col='LONG_SIGNAL'):
     high, low, price = row['high'], row['low'], row['close']
     reason, exit_price = None, None
-    # Trailing stop
     if trailing_stop_loss_pct:
         if trail_high is not None and high > trail_high:
             trail_high = high
         new_stop = trail_high * (1 - trailing_stop_loss_pct) if trail_high is not None else None
         if stop_price is None or (new_stop is not None and new_stop > stop_price):
             stop_price = new_stop
-    # Stop loss
     if stop_price is not None and low <= stop_price:
         exit_price = stop_price * (1 - slippage_pct)
         reason = TradeExitReason.STOP_LOSS.name
     elif target_price is not None and high >= target_price:
         exit_price = target_price * (1 - slippage_pct)
         reason = TradeExitReason.TARGET.name
-    elif row['LONG_SIGNAL'] == 0 and (bars_held >= hold_min_bars):
+    elif row[long_signal_col] == 0 and (bars_held >= hold_min_bars):
         exit_price = price * (1 - slippage_pct)
         reason = TradeExitReason.CROSS_DOWN.name
     elif hold_max_bars and bars_held >= hold_max_bars:
@@ -137,7 +237,8 @@ def manage_long_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_stop
 
 
 def manage_short_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_stop_loss_pct,
-                      stop_price, trail_low, target_price, slippage_pct, eod_exit):
+                      stop_price, trail_low, target_price, slippage_pct, eod_exit,
+                      short_signal_col='SHORT_SIGNAL'):
     high, low, price = row['high'], row['low'], row['close']
     reason, exit_price = None, None
     if trailing_stop_loss_pct:
@@ -152,7 +253,7 @@ def manage_short_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_sto
     elif target_price is not None and low <= target_price:
         exit_price = target_price * (1 + slippage_pct)
         reason = TradeExitReason.TARGET.name
-    elif row['SHORT_SIGNAL'] == 0 and (bars_held >= hold_min_bars):
+    elif row[short_signal_col] == 0 and (bars_held >= hold_min_bars):
         exit_price = price * (1 + slippage_pct)
         reason = TradeExitReason.CROSS_UP.name
     elif hold_max_bars and bars_held >= hold_max_bars:
@@ -166,89 +267,3 @@ def manage_short_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_sto
 
 def reset_state():
     return None, 0, None, 0, None, None, None, None
-
-
-def simulate_strategy(
-        df, initial_capital,
-        stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
-        contract_size, hold_min_bars, hold_max_bars, fill_rate,
-        slippage_pct, segment, exchange, intraday_only, debug_logs_flag
-):
-    capital = initial_capital
-    equity_curve = []
-    position = None
-    entry_price = 0
-    qty = 0
-    stop_price = None
-    target_price = None
-    trail_high = None
-    trail_low = None
-    trades = []
-    bars_held = 0
-    last_signal = 0  # 1=long, -1=short, 0=none
-    trade = None
-
-    for i, row in df.iterrows():
-        signal_long = row['LONG_SIGNAL']
-        signal_short = row['SHORT_SIGNAL']
-        is_last_bar = (i == len(df) - 1)
-        next_day = (i + 1 < len(df)) and (row['date'].date() != df.iloc[i + 1]['date'].date())
-        eod_exit = intraday_only and (is_last_bar or next_day)
-
-        # ENTRY LOGIC
-        if position is None:
-            if signal_long == 1 and (last_signal != 1):
-                trade, entry_price, qty, stop_price, target_price, trail_high = try_long_entry(
-                    row, capital, fill_rate, contract_size, slippage_pct, stop_loss_pct, target_profit_pct
-                )
-                if trade is not None:
-                    position = OrderPosition.LONG.name
-                    bars_held = 0
-                    if debug_logs_flag:
-                        log_trade(TradeEvent.ENTRY.name, trade, i)
-            elif signal_short == 1 and (last_signal != -1):
-                trade, entry_price, qty, stop_price, target_price, trail_low = try_short_entry(
-                    row, capital, fill_rate, contract_size, slippage_pct, stop_loss_pct, target_profit_pct
-                )
-                if trade is not None:
-                    position = OrderPosition.SHORT.name
-                    bars_held = 0
-                    if debug_logs_flag:
-                        log_trade(TradeEvent.ENTRY.name, trade, i)
-        else:
-            bars_held += 1
-            exit_price = None
-            reason = None
-            if position == OrderPosition.LONG.name:
-                exit_price, reason, stop_price, trail_high = manage_long_exit(
-                    row, bars_held, hold_min_bars, hold_max_bars, trailing_stop_loss_pct,
-                    stop_price, trail_high, target_price, slippage_pct, eod_exit
-                )
-                if exit_price is not None and trade is not None:
-                    cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, entry_price, qty, exchange)['total']
-                    cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, exit_price, qty, exchange)['total']
-                    pnl = (exit_price - entry_price) * qty - cost_buy - cost_sell
-                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
-                    trades.append(trade)
-                    capital += pnl
-                    if debug_logs_flag:
-                        log_trade(TradeEvent.EXIT.name, trade, i)
-                    position, bars_held, entry_price, qty, stop_price, target_price, trail_high, trail_low = reset_state()
-            elif position == OrderPosition.SHORT.name:
-                exit_price, reason, stop_price, trail_low = manage_short_exit(
-                    row, bars_held, hold_min_bars, hold_max_bars, trailing_stop_loss_pct,
-                    stop_price, trail_low, target_price, slippage_pct, eod_exit
-                )
-                if exit_price is not None and trade is not None:
-                    cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, entry_price, qty, exchange)['total']
-                    cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, exit_price, qty, exchange)['total']
-                    pnl = (entry_price - exit_price) * qty - cost_buy - cost_sell
-                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
-                    trades.append(trade)
-                    capital += pnl
-                    if debug_logs_flag:
-                        log_trade(TradeEvent.EXIT.name, trade, i)
-                    position, bars_held, entry_price, qty, stop_price, target_price, trail_high, trail_low = reset_state()
-        last_signal = 1 if signal_long == 1 else (-1 if signal_short == 1 else 0)
-        equity_curve.append(dict(date=row['date'], equity=capital))
-    return trades, equity_curve

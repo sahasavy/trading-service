@@ -22,6 +22,38 @@ backtest:
     - name: "SUPER_TREND"
       period_list: [ 10, 14 ]
       multiplier_list: [ 2.0, 3.0 ]
+    - name: "ADX"
+      period_list: [ 14 ]
+      threshold_list: [ 20, 25 ]
+      exit_threshold_list: [ 15 ]
+    - name: "BOLLINGER"
+      period_list: [ 20 ]
+      stddev_list: [ 2 ]
+    - name: "CCI"
+      period_list: [ 20 ]
+      entry_list: [ -100 ]
+      exit_list: [ 100 ]
+    - name: "DONCHIAN"
+      period_list: [ 20 ]
+    - name: "VOLUME_SPIKE"
+      period_list: [ 20 ]
+      spike_mult_list: [ 2.0 ]
+    - name: "WILLIAMS_R"
+      period_list: [ 14 ]
+      overbought_list: [ -20 ]
+      oversold_list: [ -80 ]
+    - name: "STOCHASTIC"
+      k_period_list: [ 14 ]
+      d_period_list: [ 3 ]
+      overbought_list: [ 80 ]
+      oversold_list: [ 20 ]
+    - name: "ATR"
+      period_list: [ 14 ]
+    - name: "MFI"
+      period_list: [ 14 ]
+    - name: "OBV"
+    - name: "PIVOT"
+    - name: "VWAP"
   simulation_params:
     train_split: 0.7
     initial_capital: 1000000
