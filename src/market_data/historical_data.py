@@ -1,13 +1,13 @@
+import os
 from datetime import datetime, timedelta
 
 import pandas as pd
-import pytz
 
 from src.utils.instruments_util import get_instrument_token
 from src.utils.kite_client_util import get_authenticated_kite
+from src.utils.time_util import IST
 
-IST = pytz.timezone("Asia/Kolkata")
-
+HISTORICAL_DATA_DIR = "data/historical"
 MAX_DAYS_PER_REQUEST = 100
 INTERVAL_MAX_DAYS = {
     "minute": 60,
@@ -57,7 +57,8 @@ def fetch_and_store_historical(trading_symbol, from_date, to_date, interval="5mi
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
     if not combined_df.empty:
-        filename = f"data/historical/{trading_symbol}_{interval}.csv"
+        os.makedirs(HISTORICAL_DATA_DIR, exist_ok=True)
+        filename = f"{HISTORICAL_DATA_DIR}/{trading_symbol}_{interval}.csv"
         combined_df.to_csv(filename, index=False)
         print(f"📈 Historical data for '{trading_symbol}' saved to {filename}.")
     else:

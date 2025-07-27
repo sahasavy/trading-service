@@ -1,8 +1,12 @@
+import os
+
 from sqlalchemy import create_engine, Column, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from src.utils.time_util import get_current_ist_time
 
+DATABASE_DIR = "database"
 DATABASE_URL = "sqlite:///database/trading_service.db"
+TABLENAME_LOGIN_SESSIONS = "login_sessions"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
@@ -10,6 +14,7 @@ Base = declarative_base()
 
 
 class LoginSession(Base):
+    os.makedirs(DATABASE_DIR, exist_ok=True)
     __tablename__ = 'login_sessions'
     api_key = Column(String, primary_key=True)
     access_token = Column(String, nullable=False)
