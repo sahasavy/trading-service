@@ -3,42 +3,36 @@ import os
 import threading
 from datetime import time, datetime
 
-import pytz
-import yaml
 from kiteconnect import KiteTicker
 
+from src.utils.file_util import read_config
 from src.utils.instruments_util import get_instrument_token
 from src.utils.kite_client_util import get_authenticated_kite
-from src.utils.time_util import get_current_ist_time
+from src.utils.time_util import get_current_ist_time, current_date_str
 
 CONFIG_PATH = "config/config.yaml"
-DATA_DIR = "data/live_ticks"
-
-IST = pytz.timezone("Asia/Kolkata")
-
-with open(CONFIG_PATH, 'r') as file:
-    config = yaml.safe_load(file)
-
-
-def current_date_str():
-    return get_current_ist_time().strftime('%d-%m-%Y')
+TICK_DATA_DIR = "data/live_ticks"
 
 
 def get_tokens(symbols):
-    return [get_instrument_token(sym.strip()) for sym in symbols]
+    return [get_instrument_token(symbol.strip()) for symbol in symbols]
 
 
 def create_file_handles(symbols):
     file_handles = {}
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(TICK_DATA_DIR, exist_ok=True)
     date_str = current_date_str()
-    for sym in symbols:
-        filename = f"{DATA_DIR}/{sym}_{date_str}_ticks.jsonl"
-        file_handles[sym] = open(filename, "a")
+    for symbol in symbols:
+        symbol_dir = os.path.join(TICK_DATA_DIR, symbol)
+        os.makedirs(symbol_dir, exist_ok=True)
+        filename = f"{symbol_dir}/{symbol}_{date_str}_ticks.jsonl"
+        file_handles[symbol] = open(filename, "a")
     return file_handles
 
 
 def start_websocket(symbols):
+    config = read_config(CONFIG_PATH)
+
     tokens = get_tokens(symbols)
     token_symbol_map = dict(zip(tokens, symbols))
     file_handles = create_file_handles(symbols)

@@ -5,13 +5,16 @@ from src.commons.constants.constants import Exchange
 from src.utils.kite_client_util import get_authenticated_kite
 from src.utils.time_util import get_current_ist_time
 
-CACHE_FILE = "data/cache/instruments.csv"
+CACHE_DATA_DIR = "data/cache"
+CACHE_FILE = f"{CACHE_DATA_DIR}/instruments.csv"
 
 
 def fetch_and_cache_instruments():
     kite = get_authenticated_kite()
     instruments = kite.instruments()
     df = pd.DataFrame(instruments)
+
+    os.makedirs(CACHE_DATA_DIR, exist_ok=True)
     df.to_csv(CACHE_FILE, index=False)
     print(f"✅ Instruments data cached successfully at {get_current_ist_time()}")
 

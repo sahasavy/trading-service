@@ -9,7 +9,7 @@ if __name__ == "__main__":
     user_input = input("Enter symbols (comma-separated, press enter for default list from Config): ").strip()
 
     if user_input:
-        symbols = [sym.strip().upper() for sym in user_input.split(',')]
+        symbols = [symbol.strip().upper() for symbol in user_input.split(',')]
     else:
         symbols = config['websocket']['default_symbols']
 
