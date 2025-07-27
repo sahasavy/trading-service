@@ -6,3 +6,8 @@ pandas
 pytz
 apscheduler
 numpy
+matplotlib
+seaborn
+mplfinance
+plotly
+ipywidgets

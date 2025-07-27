@@ -1,12 +1,14 @@
 import os
+
 import pandas as pd
 
+from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason, DataframeSplit
+from src.indicators.registry import add_signals
+from src.utils.backtest_util import construct_strategy_hyperparam_str
+from src.utils.brokerage_util import calculate_brokerage
 from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
 from src.utils.metrics_util import compute_backtest_metrics
-from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason
-from src.indicators.registry import add_signals
-from src.utils.brokerage_util import calculate_brokerage
-from src.utils.backtest_util import construct_strategy_hyperparam_str
+from src.utils.visualization_util import add_visualizations
 
 
 def get_signal_column_names(strategy_name):
@@ -22,8 +24,8 @@ def run_simulation(
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
         slippage_pct, segment, exchange, train_split=1.0, intraday_only=True,
-        debug_logs_flag=True, save_results=True, token="", interval="",
-        trade_dir=None
+        debug_logs_flag=True, save_results=True, trading_symbol="", interval="",
+        trade_dir=None, sim_dir=None
 ):
     # Always re-add signals per param set
     df_per_strategy = df.copy()
@@ -36,13 +38,14 @@ def run_simulation(
 
     split_idx = int(len(df_per_strategy) * train_split)
     splits = [
-        ('all', df_per_strategy),
-        ('train', df_per_strategy.iloc[:split_idx]),
-        ('test', df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
+        (DataframeSplit.ALL.name, df_per_strategy),
+        (DataframeSplit.TRAIN.name, df_per_strategy.iloc[:split_idx]),
+        (DataframeSplit.TEST.name, df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
     ]
 
     all_trades = []
     all_metrics = []
+    equity_curve_for_all = None
     for split_name, split_df in filter(None, splits):
         trades, equity_curve = simulate_strategy(
             split_df, initial_capital, stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
@@ -51,17 +54,25 @@ def run_simulation(
             long_signal_col, short_signal_col
         )
 
+        if split_name == DataframeSplit.ALL.name:
+            equity_curve_for_all = equity_curve
+
+        # Generate Metrics
         metrics = compute_backtest_metrics(trades, equity_curve, initial_capital, split_df)
         if debug_logs_flag:
-            log_backtest_metrics(metrics, token, interval, strategy_params, split_name)
+            log_backtest_metrics(metrics, trading_symbol, interval, strategy_params, split_name)
+
+        # Generate Visualizations
+        if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0 and sim_dir:
+            add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve, trades, split_df)
 
         # Save trade details
-        if save_results and split_name == 'all' and len(trades) > 0:
+        if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0:
             if trade_dir is None:
                 raise RuntimeError("trade_dir not set")
             trades_df = pd.DataFrame(trades)
             strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
-            filename = f"{token}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
+            filename = f"{trading_symbol}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
             path = os.path.join(trade_dir, filename)
             trades_df.to_csv(path, index=False)
 
@@ -72,7 +83,7 @@ def run_simulation(
             {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
              hyperparam_key != 'name'})
         all_metrics.append(metrics)
-    return all_trades, all_metrics
+    return all_trades, all_metrics, equity_curve_for_all
 
 
 def simulate_strategy(

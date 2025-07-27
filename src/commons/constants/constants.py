@@ -79,3 +79,9 @@ class IndicatorName(Enum):
     HULL_MA = "HULL_MA"
     STOCH_RSI = "STOCH_RSI"
     TRIX = "TRIX"
+
+
+class DataframeSplit(Enum):
+    ALL = "ALL"
+    TRAIN = "TRAIN"
+    TEST = "TEST"
