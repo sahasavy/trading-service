@@ -7,8 +7,9 @@ from src.backtest.simulation_engine import run_simulation
 from src.utils.logger_util import log_backtest_run_header
 from src.market_data.historical_data import fetch_and_store_historical
 from src.utils.file_util import read_config, get_next_simulation_dir, get_trade_dir, save_df_to_csv
-from src.utils.backtest_util import construct_strategy_param_grid
+from src.utils.backtest_util import construct_strategy_param_grid, construct_strategy_hyperparam_str
 from src.utils.kite_client_util import normalize_interval
+from src.utils.visualization_util import plot_equity_curve, plot_drawdown, plot_daily_returns, plot_monthly_returns
 
 CONFIG_PATH = "config/config.yaml"
 BACKTEST_CONFIG_PATH = "config/backtest-config.yaml"
@@ -90,33 +91,21 @@ def main():
                 for strategy_params in construct_strategy_param_grid(strategy):
                     log_backtest_run_header(trading_symbol, interval, strategy_params)
 
-                    _, metrics = run_simulation(
-                        df,
-                        strategy_params,
-                        initial_capital,
-                        stop_loss_pct,
-                        trailing_stop_loss_pct,
-                        target_profit_pct,
-                        contract_size,
-                        hold_min_bars,
-                        hold_max_bars,
-                        fill_rate,
-                        slippage_pct,
-                        segment,
-                        exchange,
-                        train_split,
-                        intraday_only,
-                        debug_logs_flag=debug_logs_flag,
-                        save_results=True,
-                        token=trading_symbol,
-                        interval=interval_key,
-                        trade_dir=trade_dir,
+                    _, metrics, equity_curve = run_simulation(
+                        df, strategy_params, initial_capital, stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
+                        contract_size, hold_min_bars, hold_max_bars, fill_rate, slippage_pct, segment, exchange,
+                        train_split, intraday_only, debug_logs_flag=debug_logs_flag, save_results=True,
+                        trading_symbol=trading_symbol, interval=interval_key, trade_dir=trade_dir, sim_dir=sim_dir
                     )
 
                     # Save summary metrics for all splits (all/train/test)
                     for metric in metrics:
                         metric.update(dict(token=trading_symbol, interval=interval_key))
                         summary_metrics.append(metric)
+
+                    # Generate visualization plots
+                    if equity_curve:
+                        add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve)
 
     # Save all metrics summary
     if summary_metrics:
@@ -133,6 +122,21 @@ def main():
     print(f"\n🕒 Simulation finished at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"⏱️ Total simulation time: {str(duration).split('.')[0]} (hh:mm:ss)")
     print(f"=====================================================================================\n")
+
+
+def add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve):
+    plot_dir = os.path.join(sim_dir, 'plots')
+    os.makedirs(plot_dir, exist_ok=True)
+    hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
+    prefix = f"{trading_symbol}_{interval}_{strategy_params['name']}_{hyperparam_str}"
+
+    plot_equity_curve(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_equity.png"))
+    plot_drawdown(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_drawdown.png"))
+    plot_daily_returns(equity_curve,
+                       save_path=os.path.join(plot_dir, f"{prefix}_daily_returns.png"))
+    plot_monthly_returns(equity_curve,
+                         save_path=os.path.join(plot_dir, f"{prefix}_monthly_returns.png"))
+
 
 if __name__ == "__main__":
     main()

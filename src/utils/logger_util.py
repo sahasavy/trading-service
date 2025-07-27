@@ -2,9 +2,9 @@ from src.commons.constants.constants import TradeEvent
 from src.utils.backtest_util import construct_strategy_hyperparam_str
 
 
-def log_backtest_run_header(token, interval, params):
-    pstr = construct_strategy_hyperparam_str(params)
-    print(f"\n========== Backtest: {token} {interval} {params['name']} {pstr} ==========")
+def log_backtest_run_header(trading_symbol, interval, params):
+    hyperparam_str = construct_strategy_hyperparam_str(params)
+    print(f"\n========== Backtest: {trading_symbol} {interval} {params['name']} {hyperparam_str} ==========")
 
 
 def log_backtest_trade(event, trade, idx):
@@ -18,9 +18,9 @@ def log_backtest_trade(event, trade, idx):
     #         f"🔴 [{trade['direction']}] Exit idx {idx} | {trade['exit_time']} @ {trade['exit_price']:.2f} | P&L={trade['pnl']:.2f} | Reason: {trade['exit_reason']}")
 
 
-def log_backtest_metrics(metrics, token, interval, params, split):
-    pstr = construct_strategy_hyperparam_str(params)
-    print(f"\n📊 {token} {interval} {params['name']} {pstr} [{split}] Results:")
+def log_backtest_metrics(metrics, trading_symbol, interval, params, split):
+    hyperparam_str = construct_strategy_hyperparam_str(params)
+    print(f"\n📊 {trading_symbol} {interval} {params['name']} {hyperparam_str} [{split}] Results:")
     print(
         f"  Total Return: {metrics['total_return']:.2f}%   CAGR: {metrics['cagr']:.2f}%   Calmar: {metrics['calmar']:.2f}")
     print(
