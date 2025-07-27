@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason
+from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason, DataframeSplit
 from src.indicators.registry import add_signals
 from src.utils.backtest_util import construct_strategy_hyperparam_str
 from src.utils.brokerage_util import calculate_brokerage
@@ -38,9 +38,9 @@ def run_simulation(
 
     split_idx = int(len(df_per_strategy) * train_split)
     splits = [
-        ('all', df_per_strategy),
-        ('train', df_per_strategy.iloc[:split_idx]),
-        ('test', df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
+        (DataframeSplit.ALL.name, df_per_strategy),
+        (DataframeSplit.TRAIN.name, df_per_strategy.iloc[:split_idx]),
+        (DataframeSplit.TEST.name, df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
     ]
 
     all_trades = []
@@ -54,7 +54,7 @@ def run_simulation(
             long_signal_col, short_signal_col
         )
 
-        if split_name == "all":
+        if split_name == DataframeSplit.ALL.name:
             equity_curve_for_all = equity_curve
 
         # Generate Metrics
@@ -63,11 +63,11 @@ def run_simulation(
             log_backtest_metrics(metrics, trading_symbol, interval, strategy_params, split_name)
 
         # Generate Visualizations
-        if save_results and split_name == 'all' and len(trades) > 0 and sim_dir:
-            add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve)
+        if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0 and sim_dir:
+            add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve, trades, split_df)
 
         # Save trade details
-        if save_results and split_name == 'all' and len(trades) > 0:
+        if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0:
             if trade_dir is None:
                 raise RuntimeError("trade_dir not set")
             trades_df = pd.DataFrame(trades)

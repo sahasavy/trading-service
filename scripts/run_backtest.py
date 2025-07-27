@@ -4,12 +4,13 @@ from datetime import datetime
 import pandas as pd
 
 from src.backtest.simulation_engine import run_simulation
-from src.utils.logger_util import log_backtest_run_header
 from src.market_data.historical_data import fetch_and_store_historical
-from src.utils.file_util import read_config, get_next_simulation_dir, get_trade_dir, save_df_to_csv
 from src.utils.backtest_util import construct_strategy_param_grid, construct_strategy_hyperparam_str
+from src.utils.file_util import read_config, get_next_simulation_dir, get_trade_dir, save_df_to_csv
 from src.utils.kite_client_util import normalize_interval
-from src.utils.visualization_util import plot_equity_curve, plot_drawdown, plot_daily_returns, plot_monthly_returns
+from src.utils.logger_util import log_backtest_run_header
+from src.utils.visualization_util import plot_equity_curve, plot_drawdown, plot_daily_returns, plot_monthly_returns, \
+    plot_heatmap_metrics, plot_histogram_returns, plot_rolling_sharpe
 
 CONFIG_PATH = "config/config.yaml"
 BACKTEST_CONFIG_PATH = "config/backtest-config.yaml"
@@ -91,31 +92,38 @@ def main():
                 for strategy_params in construct_strategy_param_grid(strategy):
                     log_backtest_run_header(trading_symbol, interval, strategy_params)
 
-                    _, metrics, equity_curve = run_simulation(
+                    trades, metrics, equity_curve = run_simulation(
                         df, strategy_params, initial_capital, stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
                         contract_size, hold_min_bars, hold_max_bars, fill_rate, slippage_pct, segment, exchange,
                         train_split, intraday_only, debug_logs_flag=debug_logs_flag, save_results=True,
                         trading_symbol=trading_symbol, interval=interval_key, trade_dir=trade_dir, sim_dir=sim_dir
                     )
 
-                    # Save summary metrics for all splits (all/train/test)
+                    # Save summary metrics for all splits (ALL/TRAIN/TEST)
                     for metric in metrics:
                         metric.update(dict(token=trading_symbol, interval=interval_key))
                         summary_metrics.append(metric)
 
                     # Generate visualization plots
                     if equity_curve:
-                        add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve)
+                        add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve,
+                                           trades=trades, df=df)
 
     # Save all metrics summary
     if summary_metrics:
-        save_df_to_csv(
-            pd.DataFrame(summary_metrics),
-            os.path.join(sim_dir, "metrics_summary.csv")
-        )
+        metrics_df = pd.DataFrame(summary_metrics)
+        save_df_to_csv(metrics_df, os.path.join(sim_dir, "metrics_summary.csv"))
         print(f"\n=====================================================================================")
         print(f"✅ All metrics summary saved to {os.path.join(sim_dir, 'metrics_summary.csv')}")
         print(f"=====================================================================================")
+
+        if 'fast' in metrics_df.columns and 'slow' in metrics_df.columns:
+            df_heatmap = metrics_df[metrics_df['split'] == 'ALL'] if 'split' in metrics_df.columns else metrics_df
+            df_heatmap = df_heatmap.sort_values('total_return', ascending=False).drop_duplicates(
+                subset=['fast', 'slow'])
+            plot_heatmap_metrics(df_heatmap, param_x='fast', param_y='slow', metric='total_return',
+                                 save_path=os.path.join(sim_dir, "heatmap_total_return.png"),
+                                 title="Total Return (Fast vs Slow)")
 
     end_time = datetime.now()
     duration = end_time - start_time
@@ -124,7 +132,7 @@ def main():
     print(f"=====================================================================================\n")
 
 
-def add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve):
+def add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve, trades, df):
     plot_dir = os.path.join(sim_dir, 'plots')
     os.makedirs(plot_dir, exist_ok=True)
     hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
@@ -132,10 +140,10 @@ def add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equit
 
     plot_equity_curve(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_equity.png"))
     plot_drawdown(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_drawdown.png"))
-    plot_daily_returns(equity_curve,
-                       save_path=os.path.join(plot_dir, f"{prefix}_daily_returns.png"))
-    plot_monthly_returns(equity_curve,
-                         save_path=os.path.join(plot_dir, f"{prefix}_monthly_returns.png"))
+    plot_daily_returns(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_daily_returns.png"))
+    plot_monthly_returns(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_monthly_returns.png"))
+    plot_histogram_returns(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_histogram_returns.png"))
+    plot_rolling_sharpe(equity_curve, save_path=os.path.join(plot_dir, f"{prefix}_rolling_sharpe.png"))
 
 
 if __name__ == "__main__":
