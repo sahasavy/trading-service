@@ -21,8 +21,15 @@ def log_backtest_trade(event, trade, idx):
 def log_backtest_metrics(metrics, token, interval, params, split):
     pstr = construct_strategy_hyperparam_str(params)
     print(f"\n📊 {token} {interval} {params['name']} {pstr} [{split}] Results:")
-    print(f"  Total Return: {metrics['total_return']:.2f}%   CAGR: {metrics['cagr']:.2f}%")
-    print(f"  Volatility: {metrics['volatility']:.2f}%   Sharpe Ratio: {metrics['sharpe']:.2f}")
-    print(f"  Max Drawdown: {metrics['max_drawdown']:.2f}%")
-    print(f"  Win Rate: {metrics['win_rate']:.2f}%  |  Profit Factor: {metrics['profit_factor']:.2f}")
-    print(f"  Trades: {metrics['trades']}   |   Exposure: {metrics['exposure']:.2f}%")
+    print(
+        f"  Total Return: {metrics['total_return']:.2f}%   CAGR: {metrics['cagr']:.2f}%   Calmar: {metrics['calmar']:.2f}")
+    print(
+        f"  Sharpe: {metrics['sharpe']:.2f}  Sortino: {metrics['sortino']:.2f}   Volatility: {metrics['volatility']:.2f}%")
+    print(f"  Max Drawdown: {metrics['max_drawdown']:.2f}%   Win Rate: {metrics['win_rate']:.2f}%")
+    print(
+        f"  Profit Factor: {metrics['profit_factor']:.2f}   Best/Worst: {metrics['best_trade']:.2f} / {metrics['worst_trade']:.2f}")
+    print(f"  Median Trade: {metrics['median_trade']:.2f}  Expectancy: {metrics['expectancy']:.2f}")
+    print(f"  Avg/Mdn Holding (min): {metrics['avg_holding']:.2f} / {metrics['median_holding']:.2f}")
+    print(f"  Max Win Streak: {metrics['max_win_streak']}   Max Loss Streak: {metrics['max_loss_streak']}")
+    print(f"  Trades: {metrics['trades']}   Exposure: {metrics['exposure']:.2f}%")
+    print(f"  Monthly returns: {metrics['monthly_returns']}")
