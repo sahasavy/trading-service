@@ -116,13 +116,14 @@ def main():
         print(f"✅ All metrics summary saved to {os.path.join(sim_dir, 'metrics_summary.csv')}")
         print(f"=====================================================================================")
 
-        if 'fast' in metrics_df.columns and 'slow' in metrics_df.columns:
-            df_heatmap = metrics_df[metrics_df['split'] == 'ALL'] if 'split' in metrics_df.columns else metrics_df
-            df_heatmap = df_heatmap.sort_values('total_return', ascending=False).drop_duplicates(
-                subset=['fast', 'slow'])
-            plot_heatmap_metrics(df_heatmap, param_x='fast', param_y='slow', metric='total_return',
-                                 save_path=os.path.join(sim_dir, "heatmap_total_return.png"),
-                                 title="Total Return (Fast vs Slow)")
+        # TODO - Generate visualization plots (temporarily commented out)
+        # if 'fast' in metrics_df.columns and 'slow' in metrics_df.columns:
+        #     df_heatmap = metrics_df[metrics_df['split'] == 'ALL'] if 'split' in metrics_df.columns else metrics_df
+        #     df_heatmap = df_heatmap.sort_values('total_return', ascending=False).drop_duplicates(
+        #         subset=['fast', 'slow'])
+        #     plot_heatmap_metrics(df_heatmap, param_x='fast', param_y='slow', metric='total_return',
+        #                          save_path=os.path.join(sim_dir, "heatmap_total_return.png"),
+        #                          title="Total Return (Fast vs Slow)")
 
     end_time = datetime.now()
     duration = end_time - start_time

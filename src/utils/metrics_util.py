@@ -2,6 +2,17 @@ import numpy as np
 import pandas as pd
 
 
+def generate_simulation_results(equity_curve, initial_capital, interval, split_df, split_name, strategy_params, trades,
+                                trading_symbol):
+    metrics = {'token': {trading_symbol}, 'interval': {interval}, 'split': split_name,
+               'strategy': strategy_params['name']}
+    metrics.update(
+        {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
+         hyperparam_key != 'name'})
+    metrics.update(compute_backtest_metrics(trades, equity_curve, initial_capital, split_df))
+    return metrics
+
+
 def compute_backtest_metrics(trades, equity_curve, initial_capital, df):
     # --- Core Returns ---
     final_equity = equity_curve[-1]['equity'] if equity_curve else initial_capital

@@ -8,16 +8,8 @@ from src.utils.backtest_util import construct_strategy_hyperparam_str
 from src.utils.brokerage_util import calculate_brokerage
 from src.utils.file_util import save_df_to_csv, get_trades_dir, get_features_dir
 from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
-from src.utils.metrics_util import compute_backtest_metrics
+from src.utils.metrics_util import generate_simulation_results
 from src.utils.visualization_util import add_visualizations
-
-
-def get_signal_column_names(strategy_name):
-    """Returns the actual column names for LONG and SHORT signals for the given strategy."""
-    prefix = strategy_name.upper()
-    long_col = f"{prefix}_LONG_SIGNAL"
-    short_col = f"{prefix}_SHORT_SIGNAL"
-    return long_col, short_col
 
 
 def run_simulation(
@@ -38,12 +30,12 @@ def run_simulation(
     strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
     filename = f"{trading_symbol}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
 
+    # Dataframe cleanup
     df_per_strategy.dropna(inplace=True)
     df_per_strategy.reset_index(drop=True, inplace=True)
 
-    features_dir = get_features_dir(sim_dir)
-    features_file_path = os.path.join(features_dir, filename)
-    save_df_to_csv(df_per_strategy, features_file_path)
+    # Save feature file
+    save_df_to_csv(df_per_strategy, os.path.join(get_features_dir(sim_dir), filename))
 
     long_signal_col, short_signal_col = get_signal_column_names(strategy_name)
 
@@ -68,8 +60,10 @@ def run_simulation(
         if split_name == DataframeSplit.ALL.name:
             equity_curve_for_all = equity_curve
 
-        # Generate Metrics
-        metrics = compute_backtest_metrics(trades, equity_curve, initial_capital, split_df)
+        # Generate Metrics (Simulation Results)
+        metrics = generate_simulation_results(equity_curve, initial_capital, interval, split_df, split_name,
+                                              strategy_params, trades, trading_symbol)
+
         if debug_logs_flag:
             log_backtest_metrics(metrics, trading_symbol, interval, strategy_params, split_name)
 
@@ -79,17 +73,10 @@ def run_simulation(
 
         # Save trade details
         if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0:
-            trade_dir = get_trades_dir(sim_dir)
-            trades_file_path = os.path.join(trade_dir, filename)
             trades_df = pd.DataFrame(trades)
-            save_df_to_csv(trades_df, trades_file_path)
+            save_df_to_csv(trades_df, os.path.join(get_trades_dir(sim_dir), filename))
 
         all_trades.extend(trades)
-        metrics['split'] = split_name
-        metrics['strategy'] = strategy_params['name']
-        metrics.update(
-            {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
-             hyperparam_key != 'name'})
         all_metrics.append(metrics)
     return all_trades, all_metrics, equity_curve_for_all
 
@@ -287,3 +274,11 @@ def manage_short_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_sto
 
 def reset_state():
     return None, 0, None, 0, None, None, None, None
+
+
+def get_signal_column_names(strategy_name):
+    """Returns the actual column names for LONG and SHORT signals for the given strategy."""
+    prefix = strategy_name.upper()
+    long_col = f"{prefix}_LONG_SIGNAL"
+    short_col = f"{prefix}_SHORT_SIGNAL"
+    return long_col, short_col
