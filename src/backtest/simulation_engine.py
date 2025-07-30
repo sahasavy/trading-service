@@ -1,22 +1,13 @@
 import os
-
 import pandas as pd
 
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason, DataframeSplit
 from src.indicators.registry import add_signals
 from src.utils.backtest_util import construct_strategy_hyperparam_str
 from src.utils.brokerage_util import calculate_brokerage
+from src.utils.file_util import save_df_to_csv, get_trades_dir, get_features_dir
 from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
-from src.utils.metrics_util import compute_backtest_metrics
-from src.utils.visualization_util import add_visualizations
-
-
-def get_signal_column_names(strategy_name):
-    """Returns the actual column names for LONG and SHORT signals for the given strategy."""
-    prefix = strategy_name.upper()
-    long_col = f"{prefix}_LONG_SIGNAL"
-    short_col = f"{prefix}_SHORT_SIGNAL"
-    return long_col, short_col
+from src.utils.metrics_util import generate_simulation_results
 
 
 def run_simulation(
@@ -24,8 +15,7 @@ def run_simulation(
         stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
         contract_size, hold_min_bars, hold_max_bars, fill_rate,
         slippage_pct, segment, exchange, train_split=1.0, intraday_only=True,
-        debug_logs_flag=True, save_results=True, trading_symbol="", interval="",
-        trade_dir=None, sim_dir=None
+        debug_logs_flag=True, save_results=True, trading_symbol="", interval="", sim_dir=None
 ):
     # Always re-add signals per param set
     df_per_strategy = df.copy()
@@ -34,6 +24,17 @@ def run_simulation(
     add_signals(df_per_strategy, strategy_name,
                 {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
                  hyperparam_key != 'name'})
+
+    strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
+    filename = f"{trading_symbol}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
+
+    # Dataframe cleanup
+    df_per_strategy.dropna(inplace=True)
+    df_per_strategy.reset_index(drop=True, inplace=True)
+
+    # Save feature file
+    save_df_to_csv(df_per_strategy, os.path.join(get_features_dir(sim_dir), filename))
+
     long_signal_col, short_signal_col = get_signal_column_names(strategy_name)
 
     split_idx = int(len(df_per_strategy) * train_split)
@@ -57,31 +58,20 @@ def run_simulation(
         if split_name == DataframeSplit.ALL.name:
             equity_curve_for_all = equity_curve
 
-        # Generate Metrics
-        metrics = compute_backtest_metrics(trades, equity_curve, initial_capital, split_df)
-        if debug_logs_flag:
-            log_backtest_metrics(metrics, trading_symbol, interval, strategy_params, split_name)
+        # Generate Metrics (Simulation Results)
+        metrics = generate_simulation_results(equity_curve, initial_capital, interval, split_df, split_name,
+                                              strategy_params, trades, trading_symbol, debug_logs_flag)
 
-        # Generate Visualizations
-        if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0 and sim_dir:
-            add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve, trades, split_df)
+        # TODO - Generate Visualizations (temporarily commented out)
+        # if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0 and sim_dir:
+        #     add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve, trades, split_df)
 
         # Save trade details
         if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0:
-            if trade_dir is None:
-                raise RuntimeError("trade_dir not set")
             trades_df = pd.DataFrame(trades)
-            strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
-            filename = f"{trading_symbol}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"
-            path = os.path.join(trade_dir, filename)
-            trades_df.to_csv(path, index=False)
+            save_df_to_csv(trades_df, os.path.join(get_trades_dir(sim_dir), filename))
 
         all_trades.extend(trades)
-        metrics['split'] = split_name
-        metrics['strategy'] = strategy_params['name']
-        metrics.update(
-            {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
-             hyperparam_key != 'name'})
         all_metrics.append(metrics)
     return all_trades, all_metrics, equity_curve_for_all
 
@@ -147,8 +137,19 @@ def simulate_strategy(
                 if exit_price is not None and trade is not None:
                     cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, entry_price, qty, exchange)['total']
                     cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, exit_price, qty, exchange)['total']
-                    pnl = (exit_price - entry_price) * qty - cost_buy - cost_sell
-                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
+                    gross_pnl = (exit_price - entry_price) * qty
+                    total_fee = cost_buy + cost_sell
+                    pnl = gross_pnl - total_fee
+                    trade.update(dict(
+                        exit_time=row['date'],
+                        exit_price=exit_price,
+                        exit_reason=reason,
+                        pnl=pnl,
+                        gross_pnl=gross_pnl,
+                        fee_buy=cost_buy,
+                        fee_sell=cost_sell,
+                        total_fee=total_fee
+                    ))
                     trades.append(trade)
                     capital += pnl
                     if debug_logs_flag:
@@ -163,8 +164,19 @@ def simulate_strategy(
                 if exit_price is not None and trade is not None:
                     cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, entry_price, qty, exchange)['total']
                     cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, exit_price, qty, exchange)['total']
-                    pnl = (entry_price - exit_price) * qty - cost_buy - cost_sell
-                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
+                    gross_pnl = (entry_price - exit_price) * qty
+                    total_fee = cost_buy + cost_sell
+                    pnl = gross_pnl - total_fee
+                    trade.update(dict(
+                        exit_time=row['date'],
+                        exit_price=exit_price,
+                        exit_reason=reason,
+                        pnl=pnl,
+                        gross_pnl=gross_pnl,
+                        fee_buy=cost_buy,
+                        fee_sell=cost_sell,
+                        total_fee=total_fee
+                    ))
                     trades.append(trade)
                     capital += pnl
                     if debug_logs_flag:
@@ -279,3 +291,11 @@ def manage_short_exit(row, bars_held, hold_min_bars, hold_max_bars, trailing_sto
 
 def reset_state():
     return None, 0, None, 0, None, None, None, None
+
+
+def get_signal_column_names(strategy_name):
+    """Returns the actual column names for LONG and SHORT signals for the given strategy."""
+    prefix = strategy_name.upper()
+    long_col = f"{prefix}_LONG_SIGNAL"
+    short_col = f"{prefix}_SHORT_SIGNAL"
+    return long_col, short_col
