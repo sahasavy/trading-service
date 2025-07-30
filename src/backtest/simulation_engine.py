@@ -1,5 +1,4 @@
 import os
-
 import pandas as pd
 
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason, DataframeSplit
@@ -9,7 +8,6 @@ from src.utils.brokerage_util import calculate_brokerage
 from src.utils.file_util import save_df_to_csv, get_trades_dir, get_features_dir
 from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
 from src.utils.metrics_util import generate_simulation_results
-from src.utils.visualization_util import add_visualizations
 
 
 def run_simulation(
@@ -62,10 +60,7 @@ def run_simulation(
 
         # Generate Metrics (Simulation Results)
         metrics = generate_simulation_results(equity_curve, initial_capital, interval, split_df, split_name,
-                                              strategy_params, trades, trading_symbol)
-
-        if debug_logs_flag:
-            log_backtest_metrics(metrics, trading_symbol, interval, strategy_params, split_name)
+                                              strategy_params, trades, trading_symbol, debug_logs_flag)
 
         # TODO - Generate Visualizations (temporarily commented out)
         # if save_results and split_name == DataframeSplit.ALL.name and len(trades) > 0 and sim_dir:
@@ -142,8 +137,19 @@ def simulate_strategy(
                 if exit_price is not None and trade is not None:
                     cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, entry_price, qty, exchange)['total']
                     cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, exit_price, qty, exchange)['total']
-                    pnl = (exit_price - entry_price) * qty - cost_buy - cost_sell
-                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
+                    gross_pnl = (exit_price - entry_price) * qty
+                    total_fee = cost_buy + cost_sell
+                    pnl = gross_pnl - total_fee
+                    trade.update(dict(
+                        exit_time=row['date'],
+                        exit_price=exit_price,
+                        exit_reason=reason,
+                        pnl=pnl,
+                        gross_pnl=gross_pnl,
+                        fee_buy=cost_buy,
+                        fee_sell=cost_sell,
+                        total_fee=total_fee
+                    ))
                     trades.append(trade)
                     capital += pnl
                     if debug_logs_flag:
@@ -158,8 +164,19 @@ def simulate_strategy(
                 if exit_price is not None and trade is not None:
                     cost_sell = calculate_brokerage(segment, OrderSide.SELL.name, entry_price, qty, exchange)['total']
                     cost_buy = calculate_brokerage(segment, OrderSide.BUY.name, exit_price, qty, exchange)['total']
-                    pnl = (entry_price - exit_price) * qty - cost_buy - cost_sell
-                    trade.update(dict(exit_time=row['date'], exit_price=exit_price, exit_reason=reason, pnl=pnl))
+                    gross_pnl = (entry_price - exit_price) * qty
+                    total_fee = cost_buy + cost_sell
+                    pnl = gross_pnl - total_fee
+                    trade.update(dict(
+                        exit_time=row['date'],
+                        exit_price=exit_price,
+                        exit_reason=reason,
+                        pnl=pnl,
+                        gross_pnl=gross_pnl,
+                        fee_buy=cost_buy,
+                        fee_sell=cost_sell,
+                        total_fee=total_fee
+                    ))
                     trades.append(trade)
                     capital += pnl
                     if debug_logs_flag:

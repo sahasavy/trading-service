@@ -1,21 +1,34 @@
 import numpy as np
 import pandas as pd
 
+from src.utils.logger_util import log_backtest_metrics
+
 
 def generate_simulation_results(equity_curve, initial_capital, interval, split_df, split_name, strategy_params, trades,
-                                trading_symbol):
-    metrics = {'token': {trading_symbol}, 'interval': {interval}, 'split': split_name,
-               'strategy': strategy_params['name']}
-    metrics.update(
-        {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
-         hyperparam_key != 'name'})
+                                trading_symbol, debug_logs_flag):
+    metrics = {
+        'token': trading_symbol,
+        'interval': interval,
+        'split': split_name,
+        'strategy': strategy_params['name']
+    }
+    metrics.update({hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
+                    hyperparam_key != 'name'})
     metrics.update(compute_backtest_metrics(trades, equity_curve, initial_capital, split_df))
+
+    if debug_logs_flag:
+        log_backtest_metrics(metrics, trading_symbol, interval, strategy_params, split_name)
+
     return metrics
 
 
 def compute_backtest_metrics(trades, equity_curve, initial_capital, df):
     # --- Core Returns ---
+    gross_pnl = sum([t.get('gross_pnl', 0) for t in trades])
+    total_fees = sum([t.get('total_fee', 0) for t in trades])
+    net_pnl = sum([t.get('pnl', 0) for t in trades])  # or gross_pnl - total_fees
     final_equity = equity_curve[-1]['equity'] if equity_curve else initial_capital
+    equity_final = final_equity
     total_return = (final_equity - initial_capital) / initial_capital * 100
 
     # --- CAGR ---
@@ -105,13 +118,11 @@ def compute_backtest_metrics(trades, equity_curve, initial_capital, df):
     max_loss_streak = max((s for c, s in streaks if c == 'loss'), default=0)
 
     return dict(
+        gross_pnl=gross_pnl,
+        total_fees=total_fees,
+        net_pnl=net_pnl,
+        equity_final=equity_final,
         total_return=total_return,
-        cagr=cagr * 100,
-        volatility=volatility * 100,
-        sharpe=sharpe,
-        sortino=sortino,
-        max_drawdown=max_drawdown,
-        calmar=calmar,
         win_rate=win_rate,
         profit_factor=profit_factor,
         trades=num_trades,
@@ -126,5 +137,11 @@ def compute_backtest_metrics(trades, equity_curve, initial_capital, df):
         median_holding=median_holding,
         max_win_streak=max_win_streak,
         max_loss_streak=max_loss_streak,
+        cagr=cagr * 100,
+        volatility=volatility * 100,
+        sharpe=sharpe,
+        sortino=sortino,
+        max_drawdown=max_drawdown,
+        calmar=calmar,
         monthly_returns=monthly_return_table,
     )
