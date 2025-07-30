@@ -34,8 +34,8 @@ class EMACross(BaseIndicatorStrategy):
             raise ValueError("EMA_CROSS params 'fast' and 'slow' are required in backtest-config.yaml")
         fast = params['fast']
         slow = params['slow']
-        df['EMA_FAST'] = df['close'].ewm(span=fast, adjust=False).mean()
-        df['EMA_SLOW'] = df['close'].ewm(span=slow, adjust=False).mean()
+        df['EMA_FAST'] = df['close'].ewm(span=fast, adjust=False, min_periods=fast).mean()
+        df['EMA_SLOW'] = df['close'].ewm(span=slow, adjust=False, min_periods=slow).mean()
         # Detect crossovers only, not just above/below
         cross_up = ((df['EMA_FAST'] > df['EMA_SLOW']) &
                     (df['EMA_FAST'].shift(1) <= df['EMA_SLOW'].shift(1)))

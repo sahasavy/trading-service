@@ -21,10 +21,22 @@ def get_next_simulation_dir(base_dir="data/simulation_results"):
     return sim_dir
 
 
-def get_trade_dir(sim_dir):
-    trade_dir = os.path.join(sim_dir, "trade")
-    os.makedirs(trade_dir, exist_ok=True)
-    return trade_dir
+def get_trades_dir(sim_dir):
+    trades_dir = os.path.join(sim_dir, "trades")
+    os.makedirs(trades_dir, exist_ok=True)
+    return trades_dir
+
+
+def get_features_dir(sim_dir):
+    features_dir = os.path.join(sim_dir, "features")
+    os.makedirs(features_dir, exist_ok=True)
+    return features_dir
+
+
+def get_plots_dir(sim_dir):
+    plots_dir = os.path.join(sim_dir, "plots")
+    os.makedirs(plots_dir, exist_ok=True)
+    return plots_dir
 
 
 def save_df_to_csv(df, path):

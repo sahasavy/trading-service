@@ -6,7 +6,7 @@ import pandas as pd
 from src.backtest.simulation_engine import run_simulation
 from src.market_data.historical_data import fetch_and_store_historical
 from src.utils.backtest_util import construct_strategy_param_grid, construct_strategy_hyperparam_str
-from src.utils.file_util import read_config, get_next_simulation_dir, get_trade_dir, save_df_to_csv
+from src.utils.file_util import read_config, get_next_simulation_dir, save_df_to_csv, get_plots_dir
 from src.utils.kite_client_util import normalize_interval
 from src.utils.logger_util import log_backtest_run_header
 from src.utils.visualization_util import plot_equity_curve, plot_drawdown, plot_daily_returns, plot_monthly_returns, \
@@ -71,7 +71,6 @@ def main():
     exchange = brokerage_cfg.get('exchange')
 
     sim_dir = get_next_simulation_dir()
-    trade_dir = get_trade_dir(sim_dir)
     print(f"📁 Saving simulation results to: {sim_dir}")
 
     summary_metrics = []
@@ -96,7 +95,7 @@ def main():
                         df, strategy_params, initial_capital, stop_loss_pct, trailing_stop_loss_pct, target_profit_pct,
                         contract_size, hold_min_bars, hold_max_bars, fill_rate, slippage_pct, segment, exchange,
                         train_split, intraday_only, debug_logs_flag=debug_logs_flag, save_results=True,
-                        trading_symbol=trading_symbol, interval=interval_key, trade_dir=trade_dir, sim_dir=sim_dir
+                        trading_symbol=trading_symbol, interval=interval_key, sim_dir=sim_dir
                     )
 
                     # Save summary metrics for all splits (ALL/TRAIN/TEST)
@@ -104,10 +103,10 @@ def main():
                         metric.update(dict(token=trading_symbol, interval=interval_key))
                         summary_metrics.append(metric)
 
-                    # Generate visualization plots
-                    if equity_curve:
-                        add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve,
-                                           trades=trades, df=df)
+                    # TODO - Generate visualization plots (temporarily commented out)
+                    # if equity_curve:
+                    #     add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve,
+                    #                        trades=trades, df=df)
 
     # Save all metrics summary
     if summary_metrics:
@@ -133,8 +132,7 @@ def main():
 
 
 def add_visualizations(trading_symbol, interval, sim_dir, strategy_params, equity_curve, trades, df):
-    plot_dir = os.path.join(sim_dir, 'plots')
-    os.makedirs(plot_dir, exist_ok=True)
+    plot_dir = get_plots_dir(sim_dir)
     hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
     prefix = f"{trading_symbol}_{interval}_{strategy_params['name']}_{hyperparam_str}"
 
