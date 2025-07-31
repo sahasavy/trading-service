@@ -3,10 +3,10 @@ kite:
   api_secret: "YOUR_SECRET"
 
 historical:
-  trading_symbols: [ "RELIANCE", "TCS" ]
-  intervals: [ "1m", "10m" ]
+  trading_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
+  intervals: [ "1m", "3m", "5m", "10m" ]
   from_date: "2023-01-01 09:15:00"
-  to_date: "2025-07-22 15:30:00"
+  to_date: "2025-07-31 15:30:00"
 
 websocket:
   default_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
@@ -16,18 +16,6 @@ websocket:
   market_open_minute: 00
   market_close_hour: 15
   market_close_minute: 30
-
-indicators:
-  - SMA_CROSS
-  - EMA_CROSS
-  - RSI
-  - ADX
-  - BOLLINGER
-  - CCI
-  - DONCHIAN
-  - MACD
-  - SUPER_TREND
-  - VOLUME_SPIKE
 
 brokerage:
   segment: "EQUITY_INTRADAY"

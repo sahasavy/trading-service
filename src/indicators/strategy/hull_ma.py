@@ -1,3 +1,5 @@
+import numpy as np
+
 from src.commons.constants.constants import IndicatorName
 from src.indicators.base_indicator_strategy import BaseIndicatorStrategy
 
@@ -10,12 +12,7 @@ class HullMA(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.HULL_MA.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         period = params.get('period', 21)
         wma_half = df['close'].rolling(window=period // 2).mean()
         wma_full = df['close'].rolling(window=period).mean()

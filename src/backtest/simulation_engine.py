@@ -1,4 +1,5 @@
 import os
+
 import pandas as pd
 
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason, DataframeSplit
@@ -6,7 +7,7 @@ from src.indicators.registry import add_signals
 from src.utils.backtest_util import construct_strategy_hyperparam_str
 from src.utils.brokerage_util import calculate_brokerage
 from src.utils.file_util import save_df_to_csv, get_trades_dir, get_features_dir
-from src.utils.logger_util import log_backtest_trade, log_backtest_metrics
+from src.utils.logger_util import log_backtest_trade
 from src.utils.metrics_util import generate_simulation_results
 
 
@@ -37,11 +38,12 @@ def run_simulation(
 
     long_signal_col, short_signal_col = get_signal_column_names(strategy_name)
 
+    # TODO - Only focusing on full df now. Later when ML is integrated, we can use splits (temporarily commented out)
     split_idx = int(len(df_per_strategy) * train_split)
     splits = [
         (DataframeSplit.ALL.name, df_per_strategy),
-        (DataframeSplit.TRAIN.name, df_per_strategy.iloc[:split_idx]),
-        (DataframeSplit.TEST.name, df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
+        # (DataframeSplit.TRAIN.name, df_per_strategy.iloc[:split_idx]),
+        # (DataframeSplit.TEST.name, df_per_strategy.iloc[split_idx:]) if train_split < 1.0 else None
     ]
 
     all_trades = []

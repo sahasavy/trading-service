@@ -118,7 +118,7 @@ def main():
 
         # TODO - Generate visualization plots (temporarily commented out)
         # if 'fast' in metrics_df.columns and 'slow' in metrics_df.columns:
-        #     df_heatmap = metrics_df[metrics_df['split'] == 'ALL'] if 'split' in metrics_df.columns else metrics_df
+        #     df_heatmap = metrics_df[metrics_df['split'] == DataframeSplit.ALL.name] if 'split' in metrics_df.columns else metrics_df
         #     df_heatmap = df_heatmap.sort_values('total_return', ascending=False).drop_duplicates(
         #         subset=['fast', 'slow'])
         #     plot_heatmap_metrics(df_heatmap, param_x='fast', param_y='slow', metric='total_return',

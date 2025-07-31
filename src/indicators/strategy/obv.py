@@ -12,12 +12,7 @@ class OBV(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.OBV.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         obv = [0]
         for i in range(1, len(df)):
             if df['close'].iloc[i] > df['close'].iloc[i - 1]:

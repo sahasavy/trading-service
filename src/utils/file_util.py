@@ -2,6 +2,8 @@ import os
 import re
 import yaml
 
+HISTORICAL_DATA_DIR = "data/historical"
+FEATURE_DATA_DIR = "data/feature"
 BASE_DIR = "data/simulation_results"
 TRADES_DIR = "trades"
 FEATURES_DIR = "features"
