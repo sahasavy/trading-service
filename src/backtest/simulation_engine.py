@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from src.commons.constants.constants import OrderPosition, TradeEvent, OrderSide, TradeExitReason, DataframeSplit
-from src.indicators.registry import add_signals
+from src.indicators.registry import enrich_df
 from src.utils.backtest_util import construct_strategy_hyperparam_str
 from src.utils.brokerage_util import calculate_brokerage
 from src.utils.file_util import save_df_to_csv, get_trades_dir, get_features_dir
@@ -22,9 +22,10 @@ def run_simulation(
     df_per_strategy = df.copy()
 
     strategy_name = strategy_params['name']
-    add_signals(df_per_strategy, strategy_name,
-                {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in strategy_params.items() if
-                 hyperparam_key != 'name'})
+    df_per_strategy = enrich_df(df_per_strategy, strategy_name,
+                                {hyperparam_key: hyperparam_value for hyperparam_key, hyperparam_value in
+                                 strategy_params.items() if hyperparam_key != 'name'},
+                                None)
 
     strategy_hyperparam_str = construct_strategy_hyperparam_str(strategy_params)
     filename = f"{trading_symbol}_{interval}_{strategy_params['name']}_{strategy_hyperparam_str}.csv"

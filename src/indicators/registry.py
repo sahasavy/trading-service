@@ -1,3 +1,5 @@
+import pandas as pd
+
 from src.commons.constants.constants import IndicatorName
 from src.indicators.strategy.adx import ADX
 from src.indicators.strategy.aroon import Aroon
@@ -71,7 +73,16 @@ def get_indicator(strategy_name):
     return strategy_class
 
 
-def add_signals(df, strategy_name, strategy_params):
+def add_signals(df, strategy_name, strategy_params, df_col_suffix=None):
     strategy_enum = IndicatorName(strategy_name) if not isinstance(strategy_name, IndicatorName) else strategy_name
     indicator_strategy_class = get_indicator(strategy_enum.value)
-    indicator_strategy_class().compute_signals(df, strategy_params)
+    new_columns = indicator_strategy_class().compute_signals(df, strategy_params, df_col_suffix=df_col_suffix)
+    return new_columns
+
+
+def enrich_df(df, indicator_name, combo, df_col_suffix):
+    new_columns = add_signals(df, indicator_name, combo, df_col_suffix=df_col_suffix)
+    if new_columns:
+        df_new = pd.DataFrame(new_columns, index=df.index)
+        df = pd.concat([df, df_new], axis=1)
+    return df

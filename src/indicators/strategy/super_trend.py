@@ -1,24 +1,56 @@
 import pandas as pd
-
 from src.commons.constants.constants import IndicatorName
 from src.indicators.base_indicator_strategy import BaseIndicatorStrategy
 
 
 class SuperTrend(BaseIndicatorStrategy):
     """
-    IndicatorStrategy --> SUPER TREND
+    The SuperTrend indicator is a trend-following overlay that uses ATR (Average True Range)
+    to determine the direction of the trend and possible reversals. It plots a line above or
+    below price, switching sides when price closes across the band.
+
+    Hyperparameters:
+        period: int
+            The lookback period for ATR calculation (typical: 5–20).
+        multiplier: float
+            The ATR multiplier to widen or narrow the bands (typical: 1.0–5.0).
+
+    Signal Logic:
+        - Long signal: Price crosses above the SuperTrend band (trend reversal up).
+        - Short signal: Price crosses below the SuperTrend band (trend reversal down).
     """
 
     def __init__(self):
         super().__init__(IndicatorName.SUPER_TREND.name)
 
-    def compute_signals(self, df, params):
+    @classmethod
+    def grid_ranges(cls, default_params):
+        # period: 5–20, multiplier: 1.0–5.0 in 0.5 steps
+        period_range = list(range(5, 21))  # 5, 6, ..., 20
+        multiplier_range = [round(x, 2) for x in [1.0 + 0.5 * i for i in range(9)]]  # 1.0, 1.5, ..., 5.0
+        return {
+            "period": period_range,
+            "multiplier": multiplier_range,
+        }
+
+    @classmethod
+    def filter_valid_grid_combos(cls, combos):
+        # period > 1, multiplier > 0
+        return [
+            combo for combo in combos
+            if combo['period'] > 1 and combo['multiplier'] > 0
+        ]
+
+    def compute_signals(self, df, params, df_col_suffix=None):
         if 'period' not in params or 'multiplier' not in params:
             raise ValueError(
-                f"{self.name} params 'period' and 'multiplier' are required in backtest-config.yaml/indicator-config.yaml")
+                f"{self.name} params 'period' and 'multiplier' are required in backtest-config.yaml/indicator-config.yaml"
+            )
 
-        period = params.get('period', 10)
-        multiplier = params.get('multiplier', 3.0)
+        period = params['period']
+        multiplier = params['multiplier']
+        suffix = df_col_suffix or ""
+
         high = df['high']
         low = df['low']
         close = df['close']
@@ -54,10 +86,12 @@ class SuperTrend(BaseIndicatorStrategy):
                     in_uptrend = True
             super_trend.iloc[i] = final_lb.iloc[i] if in_uptrend else final_ub.iloc[i]
 
-        df['SUPERTREND'] = super_trend
-
         cross_up = (close > super_trend) & (close.shift(1) <= super_trend.shift(1))
         cross_down = (close < super_trend) & (close.shift(1) >= super_trend.shift(1))
 
-        df['SUPER_TREND_LONG_SIGNAL'] = cross_up.shift(1, fill_value=False).astype(int)
-        df['SUPER_TREND_SHORT_SIGNAL'] = cross_down.shift(1, fill_value=False).astype(int)
+        new_cols = {
+            f'SUPERTREND{suffix}': super_trend,
+            f'SUPER_TREND_LONG_SIGNAL{suffix}': cross_up.shift(1, fill_value=False).astype(int),
+            f'SUPER_TREND_SHORT_SIGNAL{suffix}': cross_down.shift(1, fill_value=False).astype(int),
+        }
+        return new_cols
