@@ -10,12 +10,7 @@ class PSAR(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.PSAR.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         # TODO - Implemented as trend direction change (use third party lib for more accurate!)
         af = 0.02
         max_af = 0.2

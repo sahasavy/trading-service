@@ -12,12 +12,7 @@ class UltimateOsc(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.ULTIMATE_OSC.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         # TODO - See documentation for full details
         high, low, close = df['high'], df['low'], df['close']
         bp = close - pd.concat([low, close.shift(1)], axis=1).min(axis=1)

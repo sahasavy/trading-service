@@ -10,12 +10,7 @@ class Envelope(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.ENVELOPE.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         period = params.get('period', 20)
         pct = params.get('percent', 0.025)
         ma = df['close'].rolling(window=period).mean()

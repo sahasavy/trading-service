@@ -10,12 +10,7 @@ class ROC(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.ROC.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         period = params.get('period', 10)
         roc = df['close'].pct_change(periods=period) * 100
         threshold = params.get('threshold', 0)

@@ -13,12 +13,7 @@ class MFI(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.MFI.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         period = params.get('period', 14)
         tp = (df['high'] + df['low'] + df['close']) / 3
         mf = tp * df['volume']

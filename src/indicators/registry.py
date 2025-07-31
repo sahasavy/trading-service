@@ -64,16 +64,14 @@ INDICATOR_STRATEGY_REGISTRY = {
 }
 
 
-def get_indicator(name):
-    indicator = INDICATOR_STRATEGY_REGISTRY.get(name)
-    if not indicator:
-        raise ValueError(f"Indicator {name} not found in registry.")
-    return indicator
+def get_indicator(strategy_name):
+    strategy_class = INDICATOR_STRATEGY_REGISTRY.get(strategy_name)
+    if not strategy_class:
+        raise ValueError(f"Indicator {strategy_name} not found in registry.")
+    return strategy_class
 
 
 def add_signals(df, strategy_name, strategy_params):
-    strat_enum = IndicatorName(strategy_name) if not isinstance(strategy_name, IndicatorName) else strategy_name
-    strat_cls = INDICATOR_STRATEGY_REGISTRY.get(strat_enum.value)
-    if not strat_cls:
-        raise ValueError(f"Unsupported strategy: {strategy_name}")
-    strat_cls.compute_signals(df, strategy_params)
+    strategy_enum = IndicatorName(strategy_name) if not isinstance(strategy_name, IndicatorName) else strategy_name
+    indicator_strategy_class = get_indicator(strategy_enum.value)
+    indicator_strategy_class().compute_signals(df, strategy_params)

@@ -10,12 +10,7 @@ class Keltner(BaseIndicatorStrategy):
     def __init__(self):
         super().__init__(IndicatorName.KELTNER.name)
 
-    def calculate(self, df, **params):
-        # TODO - Add logic
-        pass
-
-    @staticmethod
-    def compute_signals(df, params):
+    def compute_signals(self, df, params):
         period = params.get('period', 20)
         atr_mult = params.get('multiplier', 2.0)
         ema = df['close'].ewm(span=period, adjust=False).mean()

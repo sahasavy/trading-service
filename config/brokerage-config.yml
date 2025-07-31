@@ -10,7 +10,6 @@ segments:
     txn_percent_bse: 0.0000375
     sebi_per_crore: 10
     stamp_percent_buy: 0.00015
-
   EQUITY_INTRADAY:
     brokerage_percent: 0.0003
     brokerage_cap: 20
@@ -20,7 +19,6 @@ segments:
     txn_percent_bse: 0.0000375
     sebi_per_crore: 10
     stamp_percent_buy: 0.00003
-
   FNO_FUTURE:
     brokerage_percent: 0.0003
     brokerage_cap: 20
@@ -30,7 +28,6 @@ segments:
     txn_percent_bse: 0
     sebi_per_crore: 10
     stamp_percent_buy: 0.00002
-
   FNO_OPTION:
     brokerage_percent: 0.0
     brokerage_cap: 20

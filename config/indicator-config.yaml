@@ -1,43 +1,65 @@
-indicators:
+grid_search_enabled: false
+
+active_indicators:
+  - SMA_CROSS
+  - EMA_CROSS
+  - RSI
+  - ADX
+  - BOLLINGER
+  - CCI
+  - DONCHIAN
+  - MACD
+  - SUPER_TREND
+  - VOLUME_SPIKE
+  - WILLIAMS_R
+  - STOCHASTIC
+  - ATR
+  - MFI
+
+default_hyperparam_values:
   SMA_CROSS:
     fast: 20
     slow: 50
-
   EMA_CROSS:
     fast: 12
     slow: 26
-
   RSI:
     period: 14
     overbought: 70
     oversold: 30
-
   ADX:
     period: 14
     threshold: 25
     exit_threshold: 20
-
   BOLLINGER:
     period: 20
     stddev: 2.0
-
   CCI:
     period: 20
     entry: -100
     exit: 100
-
   DONCHIAN:
     period: 20
-
   MACD:
     fast: 12
     slow: 26
     signal: 9
-
   SUPER_TREND:
     period: 10
     multiplier: 3.0
-
   VOLUME_SPIKE:
     period: 20
     spike_mult: 2.0
+  WILLIAMS_R:
+    period: 14
+    overbought: -20
+    oversold: -80
+  STOCHASTIC:
+    k_period: 14
+    d_period: 3
+    overbought: 80
+    oversold: 20
+  ATR:
+    period: 14
+  MFI:
+    period: 14
