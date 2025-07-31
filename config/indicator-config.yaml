@@ -15,6 +15,22 @@ active_indicators:
   - STOCHASTIC
   - ATR
   - MFI
+  - AROON
+  - CHAIKIN_MF
+  - DEMA
+  - ENVELOPE
+  - HULL_MA
+  - KELTNER
+  - MOMENTUM
+  - OBV
+  - PIVOT
+  - PSAR
+  - ROC
+  - STOCH_RSI
+  - TEMA
+  - TRIX
+  - ULTIMATE_OSC
+  - VWAP
 
 default_hyperparam_values:
   SMA_CROSS:
@@ -27,6 +43,7 @@ default_hyperparam_values:
     period: 14
     overbought: 70
     oversold: 30
+    mode: "simple"
   ADX:
     period: 14
     threshold: 25
@@ -61,5 +78,44 @@ default_hyperparam_values:
     oversold: 20
   ATR:
     period: 14
+    spike_mult: 2.0
   MFI:
     period: 14
+  AROON:
+    period: 14
+  CHAIKIN_MF:
+    period: 20
+  DEMA:
+    period: 21
+  ENVELOPE:
+    period: 20
+    percent: 0.025
+  HULL_MA:
+    period: 21
+  KELTNER:
+    period: 20
+    multiplier: 2.0
+  MOMENTUM:
+    period: 10
+  OBV:
+    ma_period: 20
+  PIVOT:
+    ma_period: 1
+  PSAR:
+    af: 0.02
+    max_af: 0.2
+  ROC:
+    period: 10
+    threshold: 1.0
+  STOCH_RSI:
+    period: 14
+  TEMA:
+    period: 21
+  TRIX:
+    period: 15
+  ULTIMATE_OSC:
+    period_short: 7
+    period_medium: 14
+    period_long: 28
+  VWAP:
+    period: 0   # 0 = cumulative (not rolling)
