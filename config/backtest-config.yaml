@@ -1,9 +1,9 @@
 backtest:
   data:
-    trading_symbols: [ "RELIANCE", "TCS", "INFY", "HDFCBANK" ]
+    trading_symbols: [ "COLPAL", "HDFCBANK", "IDEA", "RELIANCE", "INFY", "TCS" ]
     intervals: [ "1m", "3m", "5m", "10m" ]
     from_date: "2023-01-01 09:15:00"
-    to_date: "2025-07-22 15:30:00"
+    to_date: "2025-07-31 15:30:00"
   strategies:
     - name: "EMA_CROSS"
       fast_list: [ 8, 9, 12 ]
@@ -15,6 +15,7 @@ backtest:
       period_list: [ 14, 21 ]
       overbought_list: [ 70, 80 ]
       oversold_list: [ 30, 20 ]
+      mode_list: [ "simple", "exponential" ]
     - name: "MACD"
       fast_list: [ 12 ]
       slow_list: [ 26 ]
@@ -28,7 +29,7 @@ backtest:
       exit_threshold_list: [ 15 ]
     - name: "BOLLINGER"
       period_list: [ 20 ]
-      stddev_list: [ 2 ]
+      stddev_list: [ 2.0 ]
     - name: "CCI"
       period_list: [ 20 ]
       entry_list: [ -100 ]
@@ -49,14 +50,50 @@ backtest:
       oversold_list: [ 20 ]
     - name: "ATR"
       period_list: [ 14 ]
+      spike_mult_list: [ 2.0 ]
     - name: "MFI"
       period_list: [ 14 ]
+    - name: "AROON"
+      period_list: [ 14 ]
+    - name: "CHAIKIN_MF"
+      period_list: [ 20 ]
+    - name: "DEMA"
+      period_list: [ 21 ]
+    - name: "ENVELOPE"
+      period_list: [ 20 ]
+      percent_list: [ 0.025 ]
+    - name: "HULL_MA"
+      period_list: [ 21 ]
+    - name: "KELTNER"
+      period_list: [ 20 ]
+      multiplier_list: [ 2.0 ]
+    - name: "MOMENTUM"
+      period_list: [ 10 ]
     - name: "OBV"
+      ma_period_list: [ 20 ]
     - name: "PIVOT"
+      ma_period_list: [ 1 ]
+    - name: "PSAR"
+      af_list: [ 0.02 ]
+      max_af_list: [ 0.2 ]
+    - name: "ROC"
+      period_list: [ 10 ]
+      threshold_list: [ 1.0 ]
+    - name: "STOCH_RSI"
+      period_list: [ 14 ]
+    - name: "TEMA"
+      period_list: [ 21 ]
+    - name: "TRIX"
+      period_list: [ 15 ]
+    - name: "ULTIMATE_OSC"
+      period_short_list: [ 7 ]
+      period_medium_list: [ 14 ]
+      period_long_list: [ 28 ]
     - name: "VWAP"
+      period_list: [ 0, 10, 50 ]
   simulation_params:
     train_split: 0.7
-    initial_capital: 1000000
+    initial_capital: 500000
     stop_loss_pct: 0.02           # 2%
     trailing_stop_loss_pct: 0.02  # 2%
     target_profit_pct: 0.04       # 4%

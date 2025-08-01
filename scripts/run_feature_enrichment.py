@@ -37,5 +37,5 @@ def multi_files_enrichment():
 
 
 if __name__ == "__main__":
-    single_file_enrichment()
+    single_file_enrichment() # We can use this function for simple testing
     # multi_files_enrichment()
