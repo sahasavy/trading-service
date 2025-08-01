@@ -1,8 +1,8 @@
-import os
 from datetime import datetime, timedelta
 
 import pandas as pd
 
+from src.utils.file_util import save_df_to_csv
 from src.utils.instruments_util import get_instrument_token
 from src.utils.kite_client_util import get_authenticated_kite
 from src.utils.time_util import IST
@@ -57,9 +57,8 @@ def fetch_and_store_historical(trading_symbol, from_date, to_date, interval="5mi
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
     if not combined_df.empty:
-        os.makedirs(HISTORICAL_DATA_DIR, exist_ok=True)
         filename = f"{HISTORICAL_DATA_DIR}/{trading_symbol}_{interval}.csv"
-        combined_df.to_csv(filename, index=False)
+        save_df_to_csv(combined_df, filename)
         print(f"📈 Historical data for '{trading_symbol}' saved to {filename}.")
     else:
         print(f"⚠️ No historical data found for '{trading_symbol}'.")

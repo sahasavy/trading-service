@@ -1,13 +1,12 @@
 import os
 
-import pandas as pd
 from src.indicators.feature_enricher import apply_indicators
-from src.utils.file_util import save_df_to_csv, HISTORICAL_DATA_DIR, FEATURE_DATA_DIR
+from src.utils.file_util import save_df_to_csv, HISTORICAL_DATA_DIR, FEATURE_DATA_DIR, read_df_from_csv
 
 
 def perform_file_enrichment(filename):
     file_path = os.path.join(HISTORICAL_DATA_DIR, filename)
-    df = pd.read_csv(file_path)
+    df = read_df_from_csv(file_path)
     print(f"Processing historical data file: {file_path}")
 
     # Feature enrichment
@@ -27,7 +26,7 @@ def perform_file_enrichment(filename):
 
 
 def single_file_enrichment():
-    filename = "HDFCBANK_minute.csv"
+    filename = "HDFCBANK_3minute.csv"
     perform_file_enrichment(filename)
 
 

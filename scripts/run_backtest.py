@@ -6,7 +6,7 @@ import pandas as pd
 from src.backtest.simulation_engine import run_simulation
 from src.market_data.historical_data import fetch_and_store_historical
 from src.utils.backtest_util import construct_strategy_param_grid, construct_strategy_hyperparam_str
-from src.utils.file_util import read_config, get_next_simulation_dir, save_df_to_csv, get_plots_dir
+from src.utils.file_util import read_config, get_next_simulation_dir, save_df_to_csv, get_plots_dir, read_df_from_csv
 from src.utils.kite_client_util import normalize_interval
 from src.utils.logger_util import log_backtest_run_header
 from src.utils.visualization_util import plot_equity_curve, plot_drawdown, plot_daily_returns, plot_monthly_returns, \
@@ -22,13 +22,13 @@ def load_or_fetch_data(trading_symbol, interval_key, from_date, to_date):
     df = pd.DataFrame()
 
     if os.path.exists(filename):
-        df = pd.read_csv(filename, parse_dates=['date'])
+        df = read_df_from_csv(filename, parse_dates=['date'])
         print(f"✅ Loaded data for {trading_symbol} {interval_key} from {filename}")
     else:
         print(f"⬇️ Data for {trading_symbol} {interval_key} not found, fetching...")
         fetch_and_store_historical(trading_symbol, from_date, to_date, interval_key)
         if os.path.exists(filename):
-            df = pd.read_csv(filename, parse_dates=['date'])
+            df = read_df_from_csv(filename, parse_dates=['date'])
         else:
             print(f"❌ Failed to fetch data for {trading_symbol} {interval_key}")
     print(f"=====================================================================================")

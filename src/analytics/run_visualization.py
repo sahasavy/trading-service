@@ -1,21 +1,13 @@
-import os
 import glob
-import pandas as pd
+import os
 
+from src.utils.backtest_util import construct_strategy_hyperparam_str
+from src.utils.file_util import read_df_from_csv
 from src.utils.visualization_util import (
     plot_heatmap_metrics,
     plot_top_n_runs,
-    plot_overlay_strategies,
-    plot_equity_curve,
-    plot_drawdown,
-    plot_daily_returns,
-    plot_monthly_returns,
-    plot_histogram_returns,
-    plot_rolling_sharpe,
-    plot_signals_on_price,
-    plot_candlestick_with_signals
+    plot_overlay_strategies
 )
-from src.utils.backtest_util import construct_strategy_hyperparam_str
 
 
 def find_latest_sim_dir(base_dir="data/simulation_results"):
@@ -29,7 +21,7 @@ def find_latest_sim_dir(base_dir="data/simulation_results"):
 def load_equity_curves(trade_dir):
     curves = {}
     for trade_file in glob.glob(os.path.join(trade_dir, "*.csv")):
-        df = pd.read_csv(trade_file, parse_dates=['entry_time', 'exit_time'])
+        df = read_df_from_csv(trade_file, parse_dates=['entry_time', 'exit_time'])
         # TODO - Try to also load corresponding equity curve if you saved it separately (or reconstruct from trade log)
         # For now, let's skip and just use trade info for plotting signals
         curves[os.path.splitext(os.path.basename(trade_file))[0]] = df
@@ -41,7 +33,7 @@ def main():
     print(f"🕵️ Analyzing: {sim_dir}")
 
     metrics_path = os.path.join(sim_dir, "metrics_summary.csv")
-    metrics_df = pd.read_csv(metrics_path)
+    metrics_df = read_df_from_csv(metrics_path)
 
     trade_dir = os.path.join(sim_dir, "trade")
     plot_dir = os.path.join(sim_dir, "plots")
@@ -75,7 +67,7 @@ def main():
                 key = f"{row['token']}_{row['interval']}_{row['strategy']}_{construct_strategy_hyperparam_str(row)}"
                 trade_file = os.path.join(trade_dir, key + ".csv")
                 if os.path.exists(trade_file):
-                    df_trades = pd.read_csv(trade_file, parse_dates=['entry_time', 'exit_time'])
+                    df_trades = read_df_from_csv(trade_file, parse_dates=['entry_time', 'exit_time'])
                     equity_curve = []  # TODO: Load/recompute actual equity curve if saved
                     # TODO - Placeholder: simulate as equity = initial_capital + cumsum(pnl)
                     eq = row.get('initial_capital', 1000000)
@@ -94,7 +86,7 @@ def main():
     key = f"{best_row['token']}_{best_row['interval']}_{best_row['strategy']}_{construct_strategy_hyperparam_str(best_row)}"
     trade_file = os.path.join(trade_dir, key + ".csv")
     if os.path.exists(trade_file):
-        trades = pd.read_csv(trade_file, parse_dates=['entry_time', 'exit_time'])
+        trades = read_df_from_csv(trade_file, parse_dates=['entry_time', 'exit_time'])
         # TODO - If you saved the full price dataframe (with signals), you could plot signals
         # For now, you could skip or use last backtest's df for demo
         # Example:

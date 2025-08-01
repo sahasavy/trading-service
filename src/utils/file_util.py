@@ -1,5 +1,7 @@
 import os
 import re
+
+import pandas as pd
 import yaml
 
 HISTORICAL_DATA_DIR = "data/historical"
@@ -49,3 +51,7 @@ def get_plots_dir(sim_dir):
 def save_df_to_csv(df, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     df.to_csv(path, index=False)
+
+
+def read_df_from_csv(filename, parse_dates=None):
+    return pd.read_csv(filename, parse_dates=parse_dates)
